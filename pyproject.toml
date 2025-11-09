@@ -1,7 +1,13 @@
 [project]
-name = "hw3"
+name = "cs469-hw2"
 version = "0.1.0"
-description = "Add your description here"
+description = "SVM for landmark observability predicton"
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "matplotlib>=3.10.7",
+    "numpy>=2.3.4",
+    "pandas>=2.3.3",
+    "pytest>=8.4.2",
+    "seaborn>=0.13.2",
+]
