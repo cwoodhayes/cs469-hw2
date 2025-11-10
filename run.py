@@ -32,7 +32,9 @@ def main():
     ns = get_cli_args()
 
     # my assigned dataset is ds1, so I'm hardcoding this
-    ds = Dataset.from_dataset_directory(REPO_ROOT / "data/ds1")
+    dsdir = REPO_ROOT / "data/ds1"
+    ds = Dataset.from_dataset_directory(dsdir)
+    ds.preprocess_observability(to_file=dsdir / "ds1_observability.csv")
 
     if ns.save:
         print("Saving figures...")

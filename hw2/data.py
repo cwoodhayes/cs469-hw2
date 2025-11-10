@@ -7,6 +7,7 @@ from __future__ import annotations
 from dataclasses import InitVar, asdict, dataclass, field, fields
 import pathlib
 
+import numpy as np
 import pandas as pd
 
 
@@ -32,6 +33,12 @@ class Dataset:
     # (this way landmarks & measurements can be used together more easily)
     measurement_fix: pd.DataFrame = field(init=False)
 
+    observability: pd.DataFrame | None = field(init=False, default=None)
+    """
+    Dataset of landmark observability of time.
+    
+    Generated via sliding window over measurement dataset."""
+
     def __post_init__(self) -> None:
         # rectify labels between measurement & ground truth
 
@@ -55,6 +62,49 @@ class Dataset:
         print(f"Removed {len(fix) - len(fix_cleaned)} invalid measurements.")
 
         self.measurement_fix = fix_cleaned
+
+    def preprocess_observability(
+        self,
+        freq_hz: float = 2.0,
+        sliding_window_len_s: float = 1.0,
+        to_file: pathlib.Path | None = None,
+    ) -> None:
+        """
+        Generate observability dataset, describing what landmarks are visible at time t.
+
+        Sets self.observability with the result.
+
+        Args:
+            freq_hz: generated measurement frequency
+            sliding_window_len_s (float, optional): sliding window for defining what landmarks
+            are visible at time t
+        """
+        # make 1 column per obstacle that appears in the measurement dataset
+        msr = self.measurement_fix
+        subjects = self.measurement_fix["subject"].unique()
+        time_grid = np.arange(
+            msr["time_s"].iloc[0], msr["time_s"].iloc[-1], 1 / freq_hz
+        )
+        df = pd.DataFrame({"time_s": time_grid})
+
+        for subj in subjects:
+            # For each subject, get a boolean mask for its rows
+            times = msr.loc[msr["subject"] == subj, "time_s"].to_numpy()  # type: ignore
+
+            # For each timestamp in the grid, count how many subject occurrences
+            # fall within the sliding window [t - window, t)
+            counts = np.array(
+                [
+                    ((times >= t - sliding_window_len_s) & (times < t)).sum()
+                    for t in time_grid
+                ]
+            )
+            df[subj] = counts
+
+        self.observability = df
+
+        if to_file:
+            df.to_csv(to_file, index=False)
 
     @classmethod
     def from_dataset_directory(cls, p: pathlib.Path) -> Dataset:
