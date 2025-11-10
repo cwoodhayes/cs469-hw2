@@ -34,7 +34,7 @@ def main():
     # my assigned dataset is ds1, so I'm hardcoding this
     dsdir = REPO_ROOT / "data/ds1"
     ds = Dataset.from_dataset_directory(dsdir)
-    ds.preprocess_observability(to_file=dsdir / "ds1_observability.csv")
+    ds.preprocess_observability(to_file=dsdir / "learning_dataset.csv")
 
     if ns.save:
         print("Saving figures...")
@@ -54,6 +54,7 @@ def get_cli_args() -> argparse.Namespace:
         action="store_true",
     )
     return cli.parse_args()
+
 
 if __name__ == "__main__":
     main()

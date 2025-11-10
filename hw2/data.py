@@ -70,7 +70,7 @@ class Dataset:
         to_file: pathlib.Path | None = None,
     ) -> None:
         """
-        Generate observability dataset, describing what landmarks are visible at time t.
+        Generate observability dataset, containing pose data+labels describing what landmarks are visible at time t.
 
         Sets self.observability with the result.
 
@@ -87,6 +87,14 @@ class Dataset:
         )
         df = pd.DataFrame({"time_s": time_grid})
 
+        # add ground truth pose data, grabbing the nearest value to each timestamp
+        df = pd.merge_asof(
+            df,
+            self.ground_truth[["time_s", "x_m", "y_m", "orientation_rad"]],
+            on="time_s",
+            direction="nearest",
+        )
+
         for subj in subjects:
             # For each subject, get a boolean mask for its rows
             times = msr.loc[msr["subject"] == subj, "time_s"].to_numpy()  # type: ignore
@@ -99,7 +107,7 @@ class Dataset:
                     for t in time_grid
                 ]
             )
-            df[subj] = counts
+            df[f"landmark_{subj}"] = counts
 
         self.observability = df
 
