@@ -10,12 +10,14 @@ import argparse
 import pathlib
 import signal
 
-from hw2.data import Dataset
+from hw2.data import Dataset, ObservabilityData
 
 from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 import numpy as np
+
+from hw2.plot import plot_trajectories_pretty
 
 REPO_ROOT = pathlib.Path(__file__).parent
 FIGURES_DIR = REPO_ROOT / "figures"
@@ -34,7 +36,8 @@ def main():
     # my assigned dataset is ds1, so I'm hardcoding this
     dsdir = REPO_ROOT / "data/ds1"
     ds = Dataset.from_dataset_directory(dsdir)
-    ds.preprocess_observability(to_file=dsdir / "learning_dataset.csv")
+
+    partA1(ds)
 
     if ns.save:
         print("Saving figures...")
@@ -47,13 +50,18 @@ def main():
 
 
 def get_cli_args() -> argparse.Namespace:
-    cli = argparse.ArgumentParser("online A* + diff-drive control simulator")
+    cli = argparse.ArgumentParser("")
     cli.add_argument(
         "-s",
         "--save",
         action="store_true",
     )
     return cli.parse_args()
+
+
+def partA1(ds: Dataset):
+    # plot ground-truth observability dataset
+    plot_trajectories_pretty(ds, ds.ground_truth, "test")
 
 
 if __name__ == "__main__":
