@@ -63,57 +63,6 @@ class Dataset:
 
         self.measurement_fix = fix_cleaned
 
-    def preprocess_observability(
-        self,
-        freq_hz: float = 2.0,
-        sliding_window_len_s: float = 1.0,
-        to_file: pathlib.Path | None = None,
-    ) -> None:
-        """
-        Generate observability dataset, containing pose data+labels describing what landmarks are visible at time t.
-
-        Sets self.observability with the result.
-
-        Args:
-            freq_hz: generated measurement frequency
-            sliding_window_len_s (float, optional): sliding window for defining what landmarks
-            are visible at time t
-        """
-        # make 1 column per obstacle that appears in the measurement dataset
-        msr = self.measurement_fix
-        subjects = self.measurement_fix["subject"].unique()
-        time_grid = np.arange(
-            msr["time_s"].iloc[0], msr["time_s"].iloc[-1], 1 / freq_hz
-        )
-        df = pd.DataFrame({"time_s": time_grid})
-
-        # add ground truth pose data, grabbing the nearest value to each timestamp
-        df = pd.merge_asof(
-            df,
-            self.ground_truth[["time_s", "x_m", "y_m", "orientation_rad"]],
-            on="time_s",
-            direction="nearest",
-        )
-
-        for subj in subjects:
-            # For each subject, get a boolean mask for its rows
-            times = msr.loc[msr["subject"] == subj, "time_s"].to_numpy()  # type: ignore
-
-            # For each timestamp in the grid, count how many subject occurrences
-            # fall within the sliding window [t - window, t)
-            counts = np.array(
-                [
-                    ((times >= t - sliding_window_len_s) & (times < t)).sum()
-                    for t in time_grid
-                ]
-            )
-            df[f"landmark_{subj}"] = counts
-
-        self.observability = df
-
-        if to_file:
-            df.to_csv(to_file, index=False)
-
     @classmethod
     def from_dataset_directory(cls, p: pathlib.Path) -> Dataset:
         """
@@ -251,3 +200,63 @@ class Dataset:
         out += "\n"
 
         return out
+
+
+@dataclass
+class ObservabilityData:
+    data: pd.DataFrame
+    freq_hz: float
+    sliding_window_len_s: float
+    source_ds: Dataset
+
+    @classmethod
+    def from_dataset(
+        cls, ds: Dataset, freq_hz: float = 2.0, sliding_window_len_s: float = 1.0
+    ) -> ObservabilityData:
+        """
+        Generate observability dataset, containing pose data+labels describing what landmarks are visible at time t.
+
+        Sets self.observability with the result.
+
+        Args:
+            freq_hz: generated measurement frequency
+            sliding_window_len_s (float, optional): sliding window for defining what landmarks
+            are visible at time t
+        """
+        # make 1 column per obstacle that appears in the measurement dataset
+        msr = ds.measurement_fix
+        subjects = ds.measurement_fix["subject"].unique()
+        time_grid = np.arange(
+            msr["time_s"].iloc[0], msr["time_s"].iloc[-1], 1 / freq_hz
+        )
+        df = pd.DataFrame({"time_s": time_grid})
+
+        # add ground truth pose data, grabbing the nearest value to each timestamp
+        df = pd.merge_asof(
+            df,
+            ds.ground_truth[["time_s", "x_m", "y_m", "orientation_rad"]],
+            on="time_s",
+            direction="nearest",
+        )
+
+        for subj in subjects:
+            # For each subject, get a boolean mask for its rows
+            times = msr.loc[msr["subject"] == subj, "time_s"].to_numpy()  # type: ignore
+
+            # For each timestamp in the grid, count how many subject occurrences
+            # fall within the sliding window [t - window, t)
+            counts = np.array(
+                [
+                    ((times >= t - sliding_window_len_s) & (times < t)).sum()
+                    for t in time_grid
+                ]
+            )
+            df[f"landmark_{subj}"] = counts
+
+        out = cls(df, freq_hz, sliding_window_len_s, ds)
+        return out
+
+    def to_file(self, path: pathlib.Path | None) -> None:
+        if path is None:
+            path = self.source_ds.path / "learning_dataset.csv"
+        self.data.to_csv(path, index=False)
