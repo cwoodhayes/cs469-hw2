@@ -60,7 +60,7 @@ def get_cli_args() -> argparse.Namespace:
 
 
 def partA1(ds: Dataset):
-    ds = ds.segment_percent(0, 0.9, True)
+    ds = ds.segment_percent(0, 1, True)
     obs = ObservabilityData.from_dataset(ds)
     obs.to_file()
 
@@ -71,12 +71,7 @@ def partA1(ds: Dataset):
     fig2 = plt.figure()
     ax = fig2.subplots()
     row = obs.data.iloc[100]
-    plot_single_observation(
-        ds,
-        ax,
-        row,
-        f"Visible Landmarks @ dt={row['time_s'].round(2)}s (window len={obs.sliding_window_len_s}s)",
-    )
+    plot_single_observation(ds, obs, ax, row)
     ax.legend(fontsize=8)
 
 

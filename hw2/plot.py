@@ -10,7 +10,7 @@ import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import pandas as pd
 
-from hw2.data import Dataset
+from hw2.data import Dataset, ObservabilityData
 
 
 def plot_map_colored_obstacles(
@@ -98,7 +98,9 @@ def plot_map_colored_obstacles(
     return lm_to_color
 
 
-def plot_single_observation(ds: Dataset, ax: Axes, obs: pd.Series, title: str) -> None:
+def plot_single_observation(
+    ds: Dataset, obs_data: ObservabilityData, ax: Axes, obs: pd.Series, label: str = ""
+) -> None:
     """Plot landmarks visible from a single state on the map.
 
     Args:
@@ -110,23 +112,30 @@ def plot_single_observation(ds: Dataset, ax: Axes, obs: pd.Series, title: str) -
     plot_map_colored_obstacles(ds, ax, unseen)
 
     # show the robot's location & orientation
+    t = obs["time_s"].round(2)
     ax.quiver(
         obs["x_m"],
         obs["y_m"],
         np.cos(obs["orientation_rad"]),
         np.sin(obs["orientation_rad"]),
         color="blue",
-        label=f"Robot State (t={obs['time_s'].round(2)}s)",
+        label=f"Robot State (t={t}s)",
         zorder=2.5,
     )
 
+    title = (
+        f"Visible Landmarks @ {t}s (window={obs_data.sliding_window_len_s}s, "
+        f"freq={obs_data.freq_hz}Hz)"
+    )
+    if len(label) > 0:
+        title += "\n" + label
     ax.set_title(title)
 
 
 def plot_trajectories_pretty(
     ds: Dataset,
     fig: Figure,
-    title: str,
+    label: str,
     n_seconds_per_arrow: int = 10,
 ) -> tuple[Figure, Axes]:
     """
@@ -159,7 +168,7 @@ def plot_trajectories_pretty(
     fig.subplots_adjust(right=0.8)
     ax.set_xlabel("x (m)")
     ax.set_ylabel("y (m)")
-    ax.set_title(title)
+    ax.set_title(label)
 
     return fig, ax
 
