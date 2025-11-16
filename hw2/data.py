@@ -33,12 +33,6 @@ class Dataset:
     # (this way landmarks & measurements can be used together more easily)
     measurement_fix: pd.DataFrame = field(init=False)
 
-    observability: pd.DataFrame | None = field(init=False, default=None)
-    """
-    Dataset of landmark observability of time.
-    
-    Generated via sliding window over measurement dataset."""
-
     def __post_init__(self) -> None:
         # rectify labels between measurement & ground truth
 
@@ -162,6 +156,7 @@ class Dataset:
 
         :param p0: start percent expressed from 0-1
         :param pf: end percent expressed from 0-1
+        :param normalize_timestamps: if true, start timestamps at 0
         """
         t_start = self.ground_truth["time_s"].iloc[0]
         t_end = self.ground_truth["time_s"].iloc[-1]
@@ -205,6 +200,12 @@ class Dataset:
 @dataclass
 class ObservabilityData:
     data: pd.DataFrame
+    """
+    columns: time_s, x_m, y_m, orientation_rad, landmarks
+
+    landmarks is a dict[int, int] mapping (lm subj) -> # of times lm seen in window
+    """
+
     freq_hz: float
     sliding_window_len_s: float
     source_ds: Dataset
@@ -239,6 +240,8 @@ class ObservabilityData:
             direction="nearest",
         )
 
+        df["landmarks"] = [dict() for _ in range(len(df))]
+
         for subj in subjects:
             # For each subject, get a boolean mask for its rows
             times = msr.loc[msr["subject"] == subj, "time_s"].to_numpy()  # type: ignore
@@ -251,12 +254,13 @@ class ObservabilityData:
                     for t in time_grid
                 ]
             )
-            df[f"landmark_{subj}"] = counts
+            for idx in range(len(counts)):
+                df["landmarks"].iloc[idx][int(subj)] = int(counts[idx])
 
         out = cls(df, freq_hz, sliding_window_len_s, ds)
         return out
 
-    def to_file(self, path: pathlib.Path | None) -> None:
+    def to_file(self, path: pathlib.Path | None = None) -> None:
         if path is None:
             path = self.source_ds.path / "learning_dataset.csv"
         self.data.to_csv(path, index=False)

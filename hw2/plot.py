@@ -13,45 +13,75 @@ import pandas as pd
 from hw2.data import Dataset
 
 
-def plot_map_colored_obstacles(ds: Dataset, ax: Axes) -> None:
+def plot_map_colored_obstacles(
+    ds: Dataset, ax: Axes, unseen: set | list | None = None
+) -> dict[int, tuple[float]]:
     """
     Generate a view of the robot's arena where each obstacle is a different color.
+
+    Args:
+        ds (Dataset): dataset
+        ax (Axes): axes to plot on
+        unseen (set | None): set of landmark id's which aren't visible (ie greyed out)
+
+    Returns:
+        dict[int, tuple[float]]: map of landmark subj. # to RGBA tuple
     """
-    ### plot the landmarks as black discs
+    ## generate dictionary of landmarks to colors
+    N = len(ds.landmarks)
+    cmap = cm.get_cmap("tab20", N)  # or tab10, Set3, Dark2, Paired, etc.
+    colors = [cmap(i) for i in range(N)]
+    lm_subj = ds.landmarks["subject"]
+    lm_to_color: dict[int, tuple[float]] = {subj: c for subj, c in zip(lm_subj, colors)}  # type: ignore
+
+    ## plot the landmarks as colored text + bounding boxes
     centers = []
     for lm in ds.landmarks.itertuples(index=False):
-        # these only actually show up if you zoom wayyyyy in. the stdevs are super small.
-        oval = patches.Ellipse(
-            (lm.x_m, lm.y_m),  # type: ignore
-            width=lm.x_std_dev * 1000,  # type: ignore
-            height=lm.y_std_dev * 1000,  # type: ignore
-            facecolor="black",
-            lw=0.5,
-        )
-        ax.add_patch(oval)
-
-        x, y = oval.center
+        x: float = lm.x_m  # type: ignore
+        y: float = lm.y_m  # type: ignore
         centers.append((x, y))
-        # text shows up nicely in black boxes
+
+        # add colored text boxes (this is what really shows up well)
+        # adjust their coloring if unseen
+        if lm.subject in unseen:  # type: ignore
+            edgecolor = "#00000036"
+            facecolor = "#00000000"
+        else:
+            edgecolor = "#550000"
+            facecolor = lm_to_color[lm.subject]  # type: ignore
+
         ax.text(
             x,
             y,
-            f"{lm.subject}",
+            f"{lm.subject:<2}",
             ha="center",
             va="center",
-            fontsize=8,
-            color="#ff0055",
-            bbox=dict(facecolor="black", edgecolor="#550000", boxstyle="round,pad=0.2"),
+            fontsize=13,
+            color="black",
+            bbox=dict(
+                facecolor=facecolor,
+                edgecolor=edgecolor,
+                boxstyle="round,pad=0.2",
+            ),
         )
-    landmark_proxy = patches.Ellipse(
-        facecolor=None,
+    visible_proxy = patches.Ellipse(
+        facecolor="#00000000",
         edgecolor="#550000",
         width=0.0,
         height=0.0,
         xy=(0, 0),
-        label="Landmarks",
+        label="Visible Landmarks (colored)",
     )
-    ax.add_patch(landmark_proxy)
+    ax.add_patch(visible_proxy)
+    unseen_proxy = patches.Ellipse(
+        facecolor="#00000000",
+        edgecolor="#00000036",
+        width=0.0,
+        height=0.0,
+        xy=(0, 0),
+        label="Unseen Landmarks (colorless)",
+    )
+    ax.add_patch(unseen_proxy)
 
     ## Set up axes limits
     # they should be consistent, and at least large enough to admit all the landmarks
@@ -64,6 +94,33 @@ def plot_map_colored_obstacles(ds: Dataset, ax: Axes) -> None:
 
     ax.set_xlim(xmin=xlim[0] - padding[0], xmax=xlim[1] + padding[0])
     ax.set_ylim(ymin=ylim[0] - padding[1], ymax=ylim[1] + padding[1])
+
+    return lm_to_color
+
+
+def plot_single_observation(ds: Dataset, ax: Axes, obs: pd.Series, title: str) -> None:
+    """Plot landmarks visible from a single state on the map.
+
+    Args:
+        ds (Dataset): dataset
+        ax (Axes): plt axes
+        obs (pd.Series): row of the observability dataset to show
+    """
+    unseen = [subj for subj in obs["landmarks"] if obs["landmarks"][subj] == 0]
+    plot_map_colored_obstacles(ds, ax, unseen)
+
+    # show the robot's location & orientation
+    ax.quiver(
+        obs["x_m"],
+        obs["y_m"],
+        np.cos(obs["orientation_rad"]),
+        np.sin(obs["orientation_rad"]),
+        color="blue",
+        label=f"Robot State (t={obs['time_s'].round(2)}s)",
+        zorder=2.5,
+    )
+
+    ax.set_title(title)
 
 
 def plot_trajectories_pretty(
@@ -84,7 +141,7 @@ def plot_trajectories_pretty(
     gets impossible to read
     """
     ax = fig.subplots()
-    plot_map_colored_obstacles(ds, ax)
+    lm_to_c = plot_map_colored_obstacles(ds, ax)
 
     ### plot actual trajectories
     _plot_trajectory(

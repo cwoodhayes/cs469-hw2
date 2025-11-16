@@ -17,7 +17,7 @@ from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 import numpy as np
 
-from hw2.plot import plot_trajectories_pretty
+from hw2.plot import plot_single_observation, plot_trajectories_pretty
 
 REPO_ROOT = pathlib.Path(__file__).parent
 FIGURES_DIR = REPO_ROOT / "figures"
@@ -60,10 +60,24 @@ def get_cli_args() -> argparse.Namespace:
 
 
 def partA1(ds: Dataset):
-    # plot ground-truth observability dataset
-    fig = plt.figure()
+    ds = ds.segment_percent(0, 0.9, True)
+    obs = ObservabilityData.from_dataset(ds)
+    obs.to_file()
 
-    plot_trajectories_pretty(ds, fig, "Landmark Observability (Ground Truth)")
+    # plot ground-truth observability dataset
+    # fig = plt.figure()
+    # plot_trajectories_pretty(ds, fig, "Landmark Observability (Ground Truth)")
+
+    fig2 = plt.figure()
+    ax = fig2.subplots()
+    row = obs.data.iloc[100]
+    plot_single_observation(
+        ds,
+        ax,
+        row,
+        f"Visible Landmarks @ dt={row['time_s'].round(2)}s (window len={obs.sliding_window_len_s}s)",
+    )
+    ax.legend(fontsize=8)
 
 
 if __name__ == "__main__":
