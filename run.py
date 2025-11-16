@@ -17,7 +17,11 @@ from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 import numpy as np
 
-from hw2.plot import plot_single_observation, plot_trajectories_pretty
+from hw2.plot import (
+    plot_landmark_bars,
+    plot_single_observation,
+    plot_trajectories_pretty,
+)
 
 REPO_ROOT = pathlib.Path(__file__).parent
 FIGURES_DIR = REPO_ROOT / "figures"
@@ -70,9 +74,11 @@ def partA1(ds: Dataset):
 
     fig2 = plt.figure()
     ax = fig2.subplots()
-    row = obs.data.iloc[100]
-    plot_single_observation(ds, obs, ax, row)
-    ax.legend(fontsize=8)
+    # row = obs.data.iloc[100]
+    # plot_single_observation(ds, obs, ax, row)
+    # ax.legend(fontsize=8)
+
+    plot_landmark_bars(ds, obs, ax)
 
 
 if __name__ == "__main__":
