@@ -61,7 +61,9 @@ def get_cli_args() -> argparse.Namespace:
 
 def partA1(ds: Dataset):
     # plot ground-truth observability dataset
-    plot_trajectories_pretty(ds, ds.ground_truth, "test")
+    fig = plt.figure()
+
+    plot_trajectories_pretty(ds, fig, "Landmark Observability (Ground Truth)")
 
 
 if __name__ == "__main__":

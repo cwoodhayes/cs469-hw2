@@ -6,40 +6,25 @@ from matplotlib.figure import Figure
 import numpy as np
 from matplotlib.axes import Axes
 from matplotlib import patches
+import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import pandas as pd
 
 from hw2.data import Dataset
 
 
-def plot_trajectories_pretty(
-    ds: Dataset,
-    traj: pd.DataFrame,
-    label: str,
-    n_seconds_per_arrow: int = 10,
-) -> tuple[Figure, Axes]:
+def plot_map_colored_obstacles(ds: Dataset, ax: Axes) -> None:
     """
-    Show a map of the environment, with a given predicted trajectory plotted
-    alongside the ground truth trajectory
-
-    :param ds: full robot dataset
-    :param traj: predicted robot trajectory, in the same format as ds.groundtruth
-    :param label: descriptive name for this trajectory
-    :param traj: another trajectory along with its label, if desired.
-    no point making this a list cuz if there's more than 2 the plot
-    gets impossible to read
+    Generate a view of the robot's arena where each obstacle is a different color.
     """
-    fig = plt.figure()
-    ax = fig.subplots()
-
     ### plot the landmarks as black discs
     centers = []
     for lm in ds.landmarks.itertuples(index=False):
         # these only actually show up if you zoom wayyyyy in. the stdevs are super small.
         oval = patches.Ellipse(
-            (lm.x_m, lm.y_m),
-            width=lm.x_std_dev * 1000,
-            height=lm.y_std_dev * 1000,
+            (lm.x_m, lm.y_m),  # type: ignore
+            width=lm.x_std_dev * 1000,  # type: ignore
+            height=lm.y_std_dev * 1000,  # type: ignore
             facecolor="black",
             lw=0.5,
         )
@@ -58,10 +43,15 @@ def plot_trajectories_pretty(
             color="#ff0055",
             bbox=dict(facecolor="black", edgecolor="#550000", boxstyle="round,pad=0.2"),
         )
-
-    landmark_proxy = patches.Patch(
-        facecolor="black", edgecolor="#550000", label="Landmarks"
+    landmark_proxy = patches.Ellipse(
+        facecolor=None,
+        edgecolor="#550000",
+        width=0.0,
+        height=0.0,
+        xy=(0, 0),
+        label="Landmarks",
     )
+    ax.add_patch(landmark_proxy)
 
     ## Set up axes limits
     # they should be consistent, and at least large enough to admit all the landmarks
@@ -70,10 +60,31 @@ def plot_trajectories_pretty(
     xrange = xlim[1] - xlim[0]
     ylim = (min(c[1] for c in centers), max(c[1] for c in centers))
     yrange = ylim[1] - xlim[0]
-    offset = (xrange * 0.8, yrange * 0.8)
+    padding = (xrange * 0.1, yrange * 0.1)
 
-    ax.set_xlim(xmin=xlim[0] - offset[0], xmax=xlim[1] + offset[0])
-    ax.set_ylim(ymin=ylim[0] - offset[1], ymax=ylim[1] + offset[1])
+    ax.set_xlim(xmin=xlim[0] - padding[0], xmax=xlim[1] + padding[0])
+    ax.set_ylim(ymin=ylim[0] - padding[1], ymax=ylim[1] + padding[1])
+
+
+def plot_trajectories_pretty(
+    ds: Dataset,
+    fig: Figure,
+    title: str,
+    n_seconds_per_arrow: int = 10,
+) -> tuple[Figure, Axes]:
+    """
+    Show a map of the environment, with a given predicted trajectory plotted
+    alongside the ground truth trajectory
+
+    :param ds: full robot dataset
+    :param traj: predicted robot trajectory, in the same format as ds.groundtruth
+    :param label: descriptive name for this trajectory
+    :param traj: another trajectory along with its label, if desired.
+    no point making this a list cuz if there's more than 2 the plot
+    gets impossible to read
+    """
+    ax = fig.subplots()
+    plot_map_colored_obstacles(ds, ax)
 
     ### plot actual trajectories
     _plot_trajectory(
@@ -85,29 +96,13 @@ def plot_trajectories_pretty(
         start_color="#09ff00",
         end_color="#3232e4",
     )
-    _plot_trajectory(
-        ax,
-        label,
-        traj,
-        n_seconds_per_arrow=n_seconds_per_arrow,
-        color="#443c23",
-        # start colors are all same
-        start_color="#09ff00",
-        end_color="#362828",
-    )
 
     ## Set up the legend & labels
     ax.plot([], [], " ", label=f"*arrows are {n_seconds_per_arrow}s apart")
-    ax.legend(
-        handles=[landmark_proxy] + ax.get_legend_handles_labels()[0],
-        labels=["Landmarks"] + ax.get_legend_handles_labels()[1],
-        loc="center left",
-        bbox_to_anchor=(0.8, 0.95),
-    )
     fig.subplots_adjust(right=0.8)
     ax.set_xlabel("x (m)")
     ax.set_ylabel("y (m)")
-    ax.set_title(f"Ground Truth vs. {label}")
+    ax.set_title(title)
 
     return fig, ax
 
