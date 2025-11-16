@@ -2,6 +2,8 @@
 plotting functions for robot data
 """
 
+import warnings
+
 from matplotlib.figure import Figure
 import numpy as np
 from matplotlib.axes import Axes
@@ -142,7 +144,6 @@ def plot_single_observation(
 def plot_landmark_bars(
     ds: Dataset,
     obs_data: ObservabilityData,
-    ax: Axes,
     title: str = "",
 ) -> None:
     """
@@ -159,48 +160,52 @@ def plot_landmark_bars(
     m = df.g.map(ord)
     df["x"] += m
 
-    # Initialize the FacetGrid object
-    pal = sns.cubehelix_palette(10, rot=-0.25, light=0.7)
-    g = sns.FacetGrid(df, row="g", hue="g", aspect=15, height=0.5, palette=pal)
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", message=".*Tight Layout not applied.*")
+        # Initialize the FacetGrid object
+        pal = sns.cubehelix_palette(10, rot=-0.25, light=0.7)
+        g = sns.FacetGrid(df, row="g", hue="g", aspect=15, height=0.5, palette=pal)
 
-    # Draw the densities in a few steps
-    g.map(
-        sns.kdeplot,
-        "x",
-        bw_adjust=0.5,
-        clip_on=False,
-        fill=True,
-        alpha=1,
-        linewidth=1.5,
-    )
-    g.map(sns.kdeplot, "x", clip_on=False, color="w", lw=2, bw_adjust=0.5)
-
-    # passing color=None to refline() uses the hue mapping
-    g.refline(y=0, linewidth=2, linestyle="-", color=None, clip_on=False)
-
-    # Define and use a simple function to label the plot in axes coordinates
-    def label(x, color, label):
-        ax = plt.gca()
-        ax.text(
-            0,
-            0.2,
-            label,
-            fontweight="bold",
-            color=color,
-            ha="left",
-            va="center",
-            transform=ax.transAxes,
+        # Draw the densities in a few steps
+        g.map(
+            sns.kdeplot,
+            "x",
+            bw_adjust=0.5,
+            clip_on=False,
+            fill=True,
+            alpha=1,
+            linewidth=1.5,
         )
+        g.map(sns.kdeplot, "x", clip_on=False, color="w", lw=2, bw_adjust=0.5)
 
-    g.map(label, "x")
+        # passing color=None to refline() uses the hue mapping
+        g.refline(y=0, linewidth=2, linestyle="-", color=None, clip_on=False)
 
-    # Set the subplots to overlap
-    g.figure.subplots_adjust(hspace=-0.25)
+        # Define and use a simple function to label the plot in axes coordinates
+        def label(x, color, label):
+            ax = plt.gca()
+            ax.text(
+                0,
+                0.2,
+                label,
+                fontweight="bold",
+                color=color,
+                ha="left",
+                va="center",
+                transform=ax.transAxes,
+            )
 
-    # Remove axes details that don't play well with overlap
-    g.set_titles("")
-    g.set(yticks=[], ylabel="")
-    g.despine(bottom=True, left=True)
+        g.map(label, "x")
+
+        # Set the subplots to overlap
+        g.figure.subplots_adjust(hspace=-0.25)
+
+        # Remove axes details that don't play well with overlap
+        g.set_titles("")
+        g.set(yticks=[], ylabel="")
+        g.despine(bottom=True, left=True)
+
+        g.figure.suptitle("Landmark visibility over time")
 
 
 def plot_trajectories_pretty(

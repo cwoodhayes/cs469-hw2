@@ -64,21 +64,21 @@ def get_cli_args() -> argparse.Namespace:
 
 
 def partA1(ds: Dataset):
-    ds = ds.segment_percent(0, 1, True)
+    # ds = ds.segment_percent(0, 1, True)
     obs = ObservabilityData.from_dataset(ds)
-    obs.to_file()
+    # obs.to_file()
 
     # plot ground-truth observability dataset
     # fig = plt.figure()
     # plot_trajectories_pretty(ds, fig, "Landmark Observability (Ground Truth)")
 
-    fig2 = plt.figure()
-    ax = fig2.subplots()
+    # fig2 = plt.figure()
+    # ax = fig2.subplots()
     # row = obs.data.iloc[100]
     # plot_single_observation(ds, obs, ax, row)
     # ax.legend(fontsize=8)
 
-    plot_landmark_bars(ds, obs, ax)
+    plot_landmark_bars(ds, obs)
 
 
 if __name__ == "__main__":
