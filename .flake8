@@ -2,12 +2,11 @@
 # Maximum line length compatible with Black
 max-line-length = 88
 
+# Show error codes in VS Code for clarity
+show-source = True
+
 # Ignore rules that conflict with Black or are overly picky
-ignore = 
-    E203,  # whitespace before ':', conflicts with Black
-    W503,  # line break before binary operator, conflicts with Black
-    F403,  # 'from module import *' used; sometimes okay in __init__.py
-    F401   # imported but unused; can still be handy in __init__.py
+ignore = E203,W503,F403,F401
 
 # Exclude irrelevant directories
 exclude = 
@@ -17,7 +16,4 @@ exclude =
     dist,
     .venv,
     env
-
-# Show error codes in VS Code for clarity
-show-source = True
 
