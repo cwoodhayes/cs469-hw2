@@ -203,7 +203,7 @@ def plot_landmark_bars(
 
             g.figure.suptitle(
                 "Number of Observations Per Landmark vs. Time\n"
-                "(dotted line = 1 observation)"
+                f"(dotted line = 1 observation, window={obs_data.sliding_window_len_s}s)"
             )
             g.set_axis_labels("Time (s)", "")
             g.figure.text(
