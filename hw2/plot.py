@@ -127,8 +127,11 @@ def plot_single_observation(
         np.cos(obs["orientation_rad"]),
         np.sin(obs["orientation_rad"]),
         color="blue",
-        label=f"Robot State (t={t}s)",
+        label="Robot State",
         zorder=2.5,
+        scale=0.9,  # smaller scale → larger arrows
+        scale_units="xy",  # interpret scale in data units
+        width=0.1,  # optional: thickens the arrow shaft
     )
 
     title = (
@@ -143,6 +146,7 @@ def plot_single_observation(
 def plot_landmark_bars(
     obs_data: ObservabilityData,
     title: str = "",
+    figlabel: str | None = None,
 ) -> None:
     """
     Show visible landmarks over time using seaborn's facetgrid.
@@ -215,6 +219,10 @@ def plot_landmark_bars(
                 rotation="vertical",
                 fontsize=12,
             )
+            g.figure.set_figheight(8)
+            g.figure.set_figwidth(12)
+            if figlabel is not None:
+                g.figure.set_label(figlabel)
 
 
 def plot_trajectories_pretty(
@@ -235,9 +243,9 @@ def plot_trajectories_pretty(
     gets impossible to read
     """
     ax = fig.subplots()
-    lm_to_c = plot_map_colored_obstacles(ds, ax)
+    plot_map_colored_obstacles(ds, ax)
 
-    ### plot actual trajectories
+    # plot actual trajectories
     _plot_trajectory(
         ax,
         "Groundtruth Traj.",
@@ -248,7 +256,7 @@ def plot_trajectories_pretty(
         end_color="#3232e4",
     )
 
-    ## Set up the legend & labels
+    # Set up the legend & labels
     ax.plot([], [], " ", label=f"*arrows are {n_seconds_per_arrow}s apart")
     fig.subplots_adjust(right=0.8)
     ax.set_xlabel("x (m)")

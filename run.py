@@ -64,21 +64,28 @@ def get_cli_args() -> argparse.Namespace:
 
 
 def partA1(ds: Dataset):
+    """Generate a few plots that demonstrate the learning aim."""
+
     ds = ds.segment_percent(0, 0.2, True)
     obs = ObservabilityData.from_dataset(ds, sliding_window_len_s=2.0)
-    # obs.to_file()
+    obs.to_file()
 
-    # plot ground-truth observability dataset
-    # fig = plt.figure()
-    # plot_trajectories_pretty(ds, fig, "Landmark Observability (Ground Truth)")
+    fig = plt.figure("A1 - example states", figsize=(10, 6))
+    axes: list[Axes] = fig.subplots(1, 3)
 
-    fig2 = plt.figure()
-    ax = fig2.subplots()
-    row = obs.data.iloc[100]
-    plot_single_observation(obs, ax, row)
-    ax.legend(fontsize=8)
+    print(len(obs.data))
+    iloc_list = [100, 200, 554]
+    for i, iloc in enumerate(iloc_list):
+        row = obs.data.iloc[iloc]
+        plot_single_observation(obs, axes[i], row)
+        axes[i].set_title(f"t={round(row['time_s'], 2)}")
 
-    plot_landmark_bars(obs)
+    handles, labels = axes[2].get_legend_handles_labels()
+    fig.legend(handles, labels, loc=(0.2, 0.05), ncol=2, fontsize=10)
+    fig.subplots_adjust(bottom=0.2)
+    fig.suptitle("Landmarks Visible from 3 Example States")
+
+    plot_landmark_bars(obs, figlabel="A1 - landmarks over time")
 
 
 if __name__ == "__main__":
