@@ -206,9 +206,36 @@ class ObservabilityData:
     landmarks is a dict[int, int] mapping (lm subj) -> # of times lm seen in window
     """
 
+    data_long: pd.DataFrame = field(init=False)
+    """
+    columns: time_s, x_m, y_m, orientation_rad, subject, landmark_count
+
+    The same data as `data` in "long" form, useful for plotting in seaborn
+    (this is super annoying)
+    """
+
     freq_hz: float
     sliding_window_len_s: float
     source_ds: Dataset
+
+    def __post_init__(self) -> None:
+        # generate the long form of the data dataframe
+        rows = []
+
+        for idx, ser in self.data.iterrows():
+            for lm, count in ser["landmarks"].items():
+                rows.append(
+                    dict(
+                        time_s=ser["time_s"],
+                        x_m=ser["x_m"],
+                        y_m=ser["y_m"],
+                        orientation_rad=["orientation_rad"],
+                        subject=lm,
+                        count=count,
+                    )
+                )
+
+        self.data_long = pd.DataFrame(rows)
 
     @classmethod
     def from_dataset(

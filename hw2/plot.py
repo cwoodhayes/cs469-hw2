@@ -8,14 +8,13 @@ from matplotlib.figure import Figure
 import numpy as np
 from matplotlib.axes import Axes
 from matplotlib import patches
+import matplotlib as mpl
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 
 from hw2.data import Dataset, ObservabilityData
-
-sns.set_theme(style="white", rc={"axes.facecolor": (0, 0, 0, 0)})
 
 
 def get_landmark_to_color(ds: Dataset) -> dict[int, tuple[float]]:
@@ -108,7 +107,7 @@ def plot_map_colored_obstacles(
 
 
 def plot_single_observation(
-    ds: Dataset, obs_data: ObservabilityData, ax: Axes, obs: pd.Series, label: str = ""
+    obs_data: ObservabilityData, ax: Axes, obs: pd.Series, label: str = ""
 ) -> None:
     """Plot landmarks visible from a single state on the map.
 
@@ -118,7 +117,7 @@ def plot_single_observation(
         obs (pd.Series): row of the observability dataset to show
     """
     unseen = [subj for subj in obs["landmarks"] if obs["landmarks"][subj] == 0]
-    plot_map_colored_obstacles(ds, ax, unseen)
+    plot_map_colored_obstacles(obs_data.source_ds, ax, unseen)
 
     # show the robot's location & orientation
     t = obs["time_s"].round(2)
@@ -142,7 +141,6 @@ def plot_single_observation(
 
 
 def plot_landmark_bars(
-    ds: Dataset,
     obs_data: ObservabilityData,
     title: str = "",
 ) -> None:
@@ -153,59 +151,48 @@ def plot_landmark_bars(
     https://seaborn.pydata.org/examples/kde_ridgeplot.html
     """
     # Create the data
-    rs = np.random.RandomState(1979)
-    x = rs.randn(500)
-    g = np.tile(list("ABCDEFGHIJ"), 50)
-    df = pd.DataFrame(dict(x=x, g=g))
-    m = df.g.map(ord)
-    df["x"] += m
+    df_long = pd.DataFrame(
+        dict(
+            time=obs_data.data_long["time_s"],
+            g=obs_data.data_long["subject"],
+            x=obs_data.data_long["count"],
+        )
+    )
 
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", message=".*Tight Layout not applied.*")
-        # Initialize the FacetGrid object
-        pal = sns.cubehelix_palette(10, rot=-0.25, light=0.7)
-        g = sns.FacetGrid(df, row="g", hue="g", aspect=15, height=0.5, palette=pal)
 
-        # Draw the densities in a few steps
-        g.map(
-            sns.kdeplot,
-            "x",
-            bw_adjust=0.5,
-            clip_on=False,
-            fill=True,
-            alpha=1,
-            linewidth=1.5,
-        )
-        g.map(sns.kdeplot, "x", clip_on=False, color="w", lw=2, bw_adjust=0.5)
+        with mpl.rc_context():
+            sns.set_theme(style="white", rc={"axes.facecolor": (0, 0, 0, 0)})
 
-        # passing color=None to refline() uses the hue mapping
-        g.refline(y=0, linewidth=2, linestyle="-", color=None, clip_on=False)
+            # df_long: columns ["time", "g", "x"]
 
-        # Define and use a simple function to label the plot in axes coordinates
-        def label(x, color, label):
-            ax = plt.gca()
-            ax.text(
-                0,
-                0.2,
-                label,
-                fontweight="bold",
-                color=color,
-                ha="left",
-                va="center",
-                transform=ax.transAxes,
+            pal = sns.cubehelix_palette(df_long["g"].nunique(), rot=-0.25, light=0.7)
+            g = sns.FacetGrid(
+                df_long, row="g", hue="g", aspect=15, height=0.5, palette=pal
             )
 
-        g.map(label, "x")
+            def ridge_plot(data, color, label, **kwargs):
+                ax = plt.gca()
+                ax.fill_between(data["time"], data["x"], color=color, alpha=1)
+                ax.plot(data["time"], data["x"], color="w", lw=1.5)
+                ax.text(
+                    0,
+                    0.1,
+                    label,
+                    transform=ax.transAxes,
+                    fontweight="bold",
+                    color=color,
+                )
 
-        # Set the subplots to overlap
-        g.figure.subplots_adjust(hspace=-0.25)
+            g.map_dataframe(ridge_plot)
 
-        # Remove axes details that don't play well with overlap
-        g.set_titles("")
-        g.set(yticks=[], ylabel="")
-        g.despine(bottom=True, left=True)
+            g.figure.subplots_adjust(hspace=-0.25)
+            g.set_titles("")
+            g.set(yticks=[], ylabel="")
+            g.despine(bottom=True, left=True)
 
-        g.figure.suptitle("Landmark visibility over time")
+            g.figure.suptitle("Landmark visibility over time")
 
 
 def plot_trajectories_pretty(
