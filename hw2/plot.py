@@ -42,7 +42,7 @@ def plot_map_colored_obstacles(
     """
     lm_to_c = get_landmark_to_color(ds)
 
-    ## plot the landmarks as colored text + bounding boxes
+    # plot the landmarks as colored text + bounding boxes
     centers = []
     for lm in ds.landmarks.itertuples(index=False):
         x: float = lm.x_m  # type: ignore
@@ -91,7 +91,7 @@ def plot_map_colored_obstacles(
     )
     ax.add_patch(unseen_proxy)
 
-    ## Set up axes limits
+    # Set up axes limits
     # they should be consistent, and at least large enough to admit all the landmarks
     # and reasonable trajectories
     xlim = (min(c[0] for c in centers), max(c[0] for c in centers))
@@ -150,7 +150,7 @@ def plot_landmark_bars(
     Built off of this example:
     https://seaborn.pydata.org/examples/kde_ridgeplot.html
     """
-    # Create the data
+    # put the data in a shape seaborn's FacetGrid will recognize
     df_long = pd.DataFrame(
         dict(
             time=obs_data.data_long["time_s"],
@@ -165,11 +165,18 @@ def plot_landmark_bars(
         with mpl.rc_context():
             sns.set_theme(style="white", rc={"axes.facecolor": (0, 0, 0, 0)})
 
-            # df_long: columns ["time", "g", "x"]
+            # create the color palette for seaborn
+            lm_to_color = get_landmark_to_color(obs_data.source_ds)
+            unique_g = df_long["g"].unique()
+            pal = [lm_to_color[g_val] for g_val in unique_g]
 
-            pal = sns.cubehelix_palette(df_long["g"].nunique(), rot=-0.25, light=0.7)
             g = sns.FacetGrid(
-                df_long, row="g", hue="g", aspect=15, height=0.5, palette=pal
+                df_long,
+                row="g",
+                hue="g",
+                aspect=15,
+                height=0.5,
+                palette=pal,  # type: ignore
             )
 
             def ridge_plot(data, color, label, **kwargs):
@@ -177,7 +184,7 @@ def plot_landmark_bars(
                 ax.fill_between(data["time"], data["x"], color=color, alpha=1)
                 ax.plot(data["time"], data["x"], color="w", lw=1.5)
                 ax.text(
-                    0,
+                    -0.05,
                     0.1,
                     label,
                     transform=ax.transAxes,
@@ -186,13 +193,28 @@ def plot_landmark_bars(
                 )
 
             g.map_dataframe(ridge_plot)
+            # add reference line at count=1 for each
+            g.refline(y=1, linestyle=":")
 
             g.figure.subplots_adjust(hspace=-0.25)
             g.set_titles("")
             g.set(yticks=[], ylabel="")
             g.despine(bottom=True, left=True)
 
-            g.figure.suptitle("Landmark visibility over time")
+            g.figure.suptitle(
+                "Number of Observations Per Landmark vs. Time\n"
+                "(dotted line = 1 observation)"
+            )
+            g.set_axis_labels("Time (s)", "")
+            g.figure.text(
+                0.05,
+                0.5,
+                "Landmark Subject #",
+                ha="center",
+                va="center",
+                rotation="vertical",
+                fontsize=12,
+            )
 
 
 def plot_trajectories_pretty(
