@@ -371,3 +371,37 @@ def plot_visibility_3d(obs: ObservabilityData, ax: Axes3D, subjects: set) -> Non
     ]
 
     ax.legend(handles=legend_elements)
+
+
+def plot_visibility_3d_numpy(
+    ds: Dataset, X: np.ndarray, y: np.ndarray, ax: Axes3D, subject: int
+) -> None:
+    lm_to_c = get_landmark_to_color(ds)
+
+    # set all colors that aren't the subject
+    label_to_c = [(0.5, 0.5, 0.5, 0.2), lm_to_c[subject]]
+    colors = [label_to_c[visible] for visible in y]
+
+    ax.scatter(
+        X[:, 0],
+        X[:, 1],
+        X[:, 2],  # type: ignore
+        c=colors,
+    )
+    ax.set_xlabel("x (m)")
+    ax.set_ylabel("y (m)")
+    ax.set_zlabel(r"$\theta$ (radians)")
+
+    legend_elements = [
+        Line2D(
+            [0],
+            [0],
+            marker="o",
+            linestyle="none",
+            color=lm_to_c[subject][:3],  # RGB only
+            markerfacecolor=lm_to_c[subject],
+            label=f"Landmark {subject}",
+        ),
+    ]
+
+    ax.legend(handles=legend_elements)

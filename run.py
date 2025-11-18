@@ -22,6 +22,7 @@ from hw2.plot import (
     plot_single_observation,
     plot_trajectories_pretty,
     plot_visibility_3d,
+    plot_visibility_3d_numpy,
 )
 
 REPO_ROOT = pathlib.Path(__file__).parent
@@ -43,7 +44,9 @@ def main():
     ds = Dataset.from_dataset_directory(dsdir)
 
     # partA1(ds)
-    partA2(ds)
+    # partA2(ds)
+
+    lib_experiments(ds)
 
     if ns.save:
         print("Saving figures...")
@@ -93,7 +96,6 @@ def partA1(ds: Dataset):
 def partA2(ds: Dataset):
     """Generate a few plots that demonstrate why SVM may work."""
 
-    ds = ds.segment_percent(0, 1, True)
     obs = ObservabilityData(ds, sliding_window_len_s=2.0, freq_hz=2.0)
     # obs.to_file()
 
@@ -109,6 +111,41 @@ def partA2(ds: Dataset):
 
     ax = fig.add_subplot(224, projection="3d")
     plot_visibility_3d(obs, ax, {6, 8})
+
+
+def lib_experiments(ds: Dataset):
+    """
+    Experiments in learning with libraries.
+
+    To validate my learning aim.
+
+    using sklearn's svm implmementations
+    https://scikit-learn.org/stable/modules/svm.html
+    """
+    from sklearn import svm
+
+    obs = ObservabilityData(ds, freq_hz=2.0, sliding_window_len_s=2.0)
+
+    X_train, X_test, y_train, y_test = obs.test_train_split()
+
+    clf = svm.SVC(kernel="poly")
+    # train a classifier for a landmark
+    subj = 13
+    clf.fit(X_train.to_numpy(), y_train[subj].to_numpy())
+
+    # classify the training set
+    yhat_train = clf.predict(X_train.to_numpy())
+
+    # visualize the output
+    fig = plt.figure("libtest - trainout")
+    ax = fig.add_subplot(211, projection="3d")
+    plot_visibility_3d_numpy(ds, X_train.to_numpy(), yhat_train, ax, subject=subj)
+    ax.set_title(r"Training set predicted labels ($\hat{y}$)")
+
+    # compare against ground truth labels
+    ax2 = fig.add_subplot(212, projection="3d")
+    plot_visibility_3d(obs, ax2, {subj})
+    ax2.set_title("Training set ground truth labels (y)")
 
 
 if __name__ == "__main__":

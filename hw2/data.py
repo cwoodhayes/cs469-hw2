@@ -248,24 +248,29 @@ class ObservabilityData:
         self._generate_data_long()
         self._generate_data_unwindowed()
 
-    def _generate_data_unwindowed(self) -> None:
-        ds = self.source_ds
-        df = pd.DataFrame(
-            data={
-                "time_s": ds.measurement_fix["time_s"],
-                "subject": ds.measurement_fix["subject"],
-            }
-        )
+    def test_train_split(
+        self, test_size: float = 0.2, asdict: bool = False
+    ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+        """
+        Split the dataset into test & training data+labels
 
-        # add ground truth pose data, grabbing the nearest value to each timestamp
-        df = pd.merge_asof(
-            df,
-            ds.ground_truth[["time_s", "x_m", "y_m", "orientation_rad"]],
-            on="time_s",
-            direction="nearest",
-        )
+        Args:
+            test_size: % of the dataset to reserve as testing data
+            subject: if true, return landmarks as dictionary. if false,
+            break each landmark into its own column.
 
-        self.data_long_unwindowed = df
+        Returns:
+            (X_train, X_test, y_train, y_test)
+        """
+        X = self.data[["x_m", "y_m", "orientation_rad"]]
+        if asdict:
+            y = self.data[["landmarks"]]
+        else:
+            y = pd.DataFrame()
+            for subj in self.data["landmarks"].iloc[0].keys():
+                y[subj] = self.data["landmarks"].map(lambda lm: lm[subj])
+        N = int(len(X) * (1 - test_size))
+        return X.iloc[:N], X.iloc[N:], y.iloc[:N], y.iloc[N:]
 
     def _generate_data(self) -> None:
         # make 1 column per obstacle that appears in the measurement dataset
@@ -320,6 +325,25 @@ class ObservabilityData:
                     )
                 )
         self.data_long = pd.DataFrame(rows)
+
+    def _generate_data_unwindowed(self) -> None:
+        ds = self.source_ds
+        df = pd.DataFrame(
+            data={
+                "time_s": ds.measurement_fix["time_s"],
+                "subject": ds.measurement_fix["subject"],
+            }
+        )
+
+        # add ground truth pose data, grabbing the nearest value to each timestamp
+        df = pd.merge_asof(
+            df,
+            ds.ground_truth[["time_s", "x_m", "y_m", "orientation_rad"]],
+            on="time_s",
+            direction="nearest",
+        )
+
+        self.data_long_unwindowed = df
 
     def to_file(self, path: pathlib.Path | None = None) -> None:
         if path is None:
