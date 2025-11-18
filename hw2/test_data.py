@@ -21,6 +21,8 @@ def test_preprocess():
     ds = Dataset.from_dataset_directory(p)
 
     # try default values
-    obs = ObservabilityData.from_dataset(ds)
+    obs = ObservabilityData(ds, freq_hz=1.0, sliding_window_len_s=2.0)
 
     assert len(obs.data) > 0
+    assert len(obs.data_long) > 0
+    # assert len(obs.data_long_unwindowed) == len(ds.measurement_fix)

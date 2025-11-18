@@ -199,7 +199,22 @@ class Dataset:
 
 @dataclass
 class ObservabilityData:
-    data: pd.DataFrame
+    """
+    Observability dataset, containing pose data+labels describing what landmarks are visible at time t.
+    """
+
+    source_ds: Dataset
+    """Source dataset."""
+    freq_hz: float
+    """Frequency of the derived measurements."""
+    sliding_window_len_s: float
+    """Length of the sliding window.
+    
+    landmark visibility is determined by whether a measurement of that landmark has occurred
+    during this window prior to each time t.
+    """
+
+    data: pd.DataFrame = field(init=False)
     """
     columns: time_s, x_m, y_m, orientation_rad, landmarks
 
@@ -214,48 +229,51 @@ class ObservabilityData:
     (this is super annoying)
     """
 
-    freq_hz: float
-    sliding_window_len_s: float
-    source_ds: Dataset
+    data_long_unwindowed: pd.DataFrame = field(init=False)
+    """
+    columns: time_s, x_m, y_m, orientation_rad, subject
+
+    each row represents a single measurement from measurement.dat, at whatever frequency it has.
+    the robot state is taken from the nearest neighbor interpolation in the groundtruths
+    """
 
     def __post_init__(self) -> None:
-        # generate the long form of the data dataframe
-        rows = []
+        # sanity check -- if the sample period is longer than the sliding window, we
+        # will miss samples
+        if self.sliding_window_len_s < (1 / self.freq_hz):
+            raise ValueError("Sliding window len cannot be < 1/freq")
 
-        for idx, ser in self.data.iterrows():
-            for lm, count in ser["landmarks"].items():
-                rows.append(
-                    dict(
-                        time_s=ser["time_s"],
-                        x_m=ser["x_m"],
-                        y_m=ser["y_m"],
-                        orientation_rad=["orientation_rad"],
-                        subject=lm,
-                        count=count,
-                    )
-                )
+        # generate base dataset used for training
+        self._generate_data()
+        self._generate_data_long()
+        self._generate_data_unwindowed()
 
-        self.data_long = pd.DataFrame(rows)
+    def _generate_data_unwindowed(self) -> None:
+        ds = self.source_ds
+        df = pd.DataFrame(
+            data={
+                "time_s": ds.measurement_fix["time_s"],
+                "subject": ds.measurement_fix["subject"],
+            }
+        )
 
-    @classmethod
-    def from_dataset(
-        cls, ds: Dataset, freq_hz: float = 2.0, sliding_window_len_s: float = 1.0
-    ) -> ObservabilityData:
-        """
-        Generate observability dataset, containing pose data+labels describing what landmarks are visible at time t.
+        # add ground truth pose data, grabbing the nearest value to each timestamp
+        df = pd.merge_asof(
+            df,
+            ds.ground_truth[["time_s", "x_m", "y_m", "orientation_rad"]],
+            on="time_s",
+            direction="nearest",
+        )
 
-        Sets self.observability with the result.
+        self.data_long_unwindowed = df
 
-        Args:
-            freq_hz: generated measurement frequency
-            sliding_window_len_s (float, optional): sliding window for defining what landmarks
-            are visible at time t
-        """
+    def _generate_data(self) -> None:
         # make 1 column per obstacle that appears in the measurement dataset
+        ds = self.source_ds
         msr = ds.measurement_fix
         subjects = ds.measurement_fix["subject"].unique()
         time_grid = np.arange(
-            msr["time_s"].iloc[0], msr["time_s"].iloc[-1], 1 / freq_hz
+            msr["time_s"].iloc[0], msr["time_s"].iloc[-1], 1 / self.freq_hz
         )
         df = pd.DataFrame({"time_s": time_grid})
 
@@ -277,15 +295,31 @@ class ObservabilityData:
             # fall within the sliding window [t - window, t)
             counts = np.array(
                 [
-                    ((times >= t - sliding_window_len_s) & (times < t)).sum()
+                    ((times >= t - self.sliding_window_len_s) & (times < t)).sum()
                     for t in time_grid
                 ]
             )
             for idx in range(len(counts)):
                 df["landmarks"].iloc[idx][int(subj)] = int(counts[idx])
 
-        out = cls(df, freq_hz, sliding_window_len_s, ds)
-        return out
+        self.data = df
+
+    def _generate_data_long(self) -> None:
+        # generate the long form of the data dataframe
+        rows = []
+        for idx, ser in self.data.iterrows():
+            for lm, count in ser["landmarks"].items():
+                rows.append(
+                    dict(
+                        time_s=ser["time_s"],
+                        x_m=ser["x_m"],
+                        y_m=ser["y_m"],
+                        orientation_rad=["orientation_rad"],
+                        subject=lm,
+                        count=count,
+                    )
+                )
+        self.data_long = pd.DataFrame(rows)
 
     def to_file(self, path: pathlib.Path | None = None) -> None:
         if path is None:

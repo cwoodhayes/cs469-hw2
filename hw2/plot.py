@@ -213,7 +213,7 @@ def plot_landmark_bars(
             g.figure.text(
                 0.05,
                 0.5,
-                "Landmark Subject #",
+                "# of Observations (by landmark ID)",
                 ha="center",
                 va="center",
                 rotation="vertical",

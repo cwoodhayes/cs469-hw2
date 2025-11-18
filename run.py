@@ -67,7 +67,7 @@ def partA1(ds: Dataset):
     """Generate a few plots that demonstrate the learning aim."""
 
     ds = ds.segment_percent(0, 0.2, True)
-    obs = ObservabilityData.from_dataset(ds, sliding_window_len_s=2.0)
+    obs = ObservabilityData(ds, sliding_window_len_s=2.0, freq_hz=2.0)
     obs.to_file()
 
     fig = plt.figure("A1 - example states", figsize=(10, 6))
@@ -86,6 +86,10 @@ def partA1(ds: Dataset):
     fig.suptitle("Landmarks Visible from 3 Example States")
 
     plot_landmark_bars(obs, figlabel="A1 - landmarks over time")
+
+
+def partA2(ds: Dataset):
+    """Generate a few plots that demonstrate why SVM may work."""
 
 
 if __name__ == "__main__":
