@@ -124,18 +124,25 @@ def lib_experiments(ds: Dataset):
     https://scikit-learn.org/stable/modules/svm.html
     """
     from sklearn import svm
+    from sklearn.metrics import ConfusionMatrixDisplay
 
     obs = ObservabilityData(ds, freq_hz=2.0, sliding_window_len_s=2.0)
 
     X_train, X_test, y_train, y_test = obs.test_train_split()
 
-    clf = svm.SVC(kernel="poly")
+    # convert X to use sin(theta), cos(theta) rather than just theta
+    X = X_train.copy()
+    X["sin"] = np.sin(X_train["orientation_rad"])
+    X["cos"] = np.cos(X_train["orientation_rad"])
+    del X["orientation_rad"]
+
+    clf = svm.SVC(kernel="poly", degree=8)
     # train a classifier for a landmark
     subj = 13
-    clf.fit(X_train.to_numpy(), y_train[subj].to_numpy())
+    clf.fit(X.to_numpy(), y_train[subj].to_numpy())
 
     # classify the training set
-    yhat_train = clf.predict(X_train.to_numpy())
+    yhat_train = clf.predict(X.to_numpy())
 
     # visualize the output
     fig = plt.figure("libtest - trainout")
@@ -150,6 +157,12 @@ def lib_experiments(ds: Dataset):
 
     sync_axes(ax, ax2)
     sync_axes(ax2, ax)
+
+    # print % correct
+    n_correct = np.count_nonzero(yhat_train == y_train[subj].to_numpy())
+    print(f"{n_correct}/{len(y_train)} correct ({100 * n_correct / len(y_train):.2f}%)")
+    # This computes and plots in one step
+    ConfusionMatrixDisplay.from_predictions(y_train[subj].to_numpy(), yhat_train)
 
 
 if __name__ == "__main__":
