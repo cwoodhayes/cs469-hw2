@@ -98,8 +98,17 @@ def partA2(ds: Dataset):
     # obs.to_file()
 
     fig = plt.figure("A2 - 3dplot")
-    ax = fig.add_subplot(111, projection="3d")
+    ax = fig.add_subplot(221, projection="3d")
     plot_visibility_3d(obs, ax, {13, 7})
+
+    ax = fig.add_subplot(222, projection="3d")
+    plot_visibility_3d(obs, ax, {10, 15})
+
+    ax = fig.add_subplot(223, projection="3d")
+    plot_visibility_3d(obs, ax, {19, 20})
+
+    ax = fig.add_subplot(224, projection="3d")
+    plot_visibility_3d(obs, ax, {6, 8})
 
 
 if __name__ == "__main__":

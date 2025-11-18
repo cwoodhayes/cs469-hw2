@@ -345,7 +345,7 @@ def plot_visibility_3d(obs: ObservabilityData, ax: Axes3D, subjects: set) -> Non
 
     # set all colors that aren't in subjects list to grey
     for subj in set(lm_to_c.keys()) - subjects:
-        lm_to_c[subj] = (0.5, 0.5, 0.5, 0.1)
+        lm_to_c[subj] = (0.5, 0.5, 0.5, 0.05)
 
     df = obs.data_long_unwindowed
     colors = [lm_to_c[row["subject"]] for _, row in df.iterrows()]
