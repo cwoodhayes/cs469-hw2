@@ -21,6 +21,7 @@ from hw2.plot import (
     plot_landmark_bars,
     plot_single_observation,
     plot_trajectories_pretty,
+    plot_visibility_3d,
 )
 
 REPO_ROOT = pathlib.Path(__file__).parent
@@ -41,7 +42,8 @@ def main():
     dsdir = REPO_ROOT / "data/ds1"
     ds = Dataset.from_dataset_directory(dsdir)
 
-    partA1(ds)
+    # partA1(ds)
+    partA2(ds)
 
     if ns.save:
         print("Saving figures...")
@@ -90,6 +92,14 @@ def partA1(ds: Dataset):
 
 def partA2(ds: Dataset):
     """Generate a few plots that demonstrate why SVM may work."""
+
+    ds = ds.segment_percent(0, 1, True)
+    obs = ObservabilityData(ds, sliding_window_len_s=2.0, freq_hz=2.0)
+    # obs.to_file()
+
+    fig = plt.figure("A2 - 3dplot")
+    ax = fig.add_subplot(111, projection="3d")
+    plot_visibility_3d(obs, ax, {13, 7})
 
 
 if __name__ == "__main__":

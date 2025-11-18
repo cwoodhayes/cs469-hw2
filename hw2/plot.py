@@ -5,6 +5,8 @@ plotting functions for robot data
 import warnings
 
 from matplotlib.figure import Figure
+from matplotlib.lines import Line2D
+from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 from matplotlib.axes import Axes
 from matplotlib import patches
@@ -16,8 +18,10 @@ import seaborn as sns
 
 from hw2.data import Dataset, ObservabilityData
 
+RGBATuple = tuple[float, float, float, float]
 
-def get_landmark_to_color(ds: Dataset) -> dict[int, tuple[float]]:
+
+def get_landmark_to_color(ds: Dataset) -> dict[int, RGBATuple]:
     """Generate dictionary of landmarks to colors."""
     N = len(ds.landmarks)
     cmap = cm.get_cmap("tab20", N)  # or tab10, Set3, Dark2, Paired, etc.
@@ -28,7 +32,7 @@ def get_landmark_to_color(ds: Dataset) -> dict[int, tuple[float]]:
 
 def plot_map_colored_obstacles(
     ds: Dataset, ax: Axes, unseen: set | list | None = None
-) -> dict[int, tuple[float]]:
+) -> dict[int, RGBATuple]:
     """
     Generate a view of the robot's arena where each obstacle is a different color.
 
@@ -206,8 +210,8 @@ def plot_landmark_bars(
             g.despine(bottom=True, left=True)
 
             g.figure.suptitle(
-                "Number of Observations Per Landmark vs. Time\n"
-                f"(dotted line = 1 observation, window={obs_data.sliding_window_len_s}s)"
+                "Number of Observations Per Landmark vs. Time\n(dotted line = 1 "
+                f"observation, window={obs_data.sliding_window_len_s}s)"
             )
             g.set_axis_labels("Time (s)", "")
             g.figure.text(
@@ -285,7 +289,7 @@ def _plot_trajectory(
         color=color,
     )
 
-    ### plot arrows along the path
+    # plot arrows along the path
 
     # calculate how to distribute our arrows on the trajectory
     # this is based on the data rate of each, so each arrow represents
@@ -331,3 +335,39 @@ def _plot_trajectory(
         label=f"{label} END",
         zorder=2.5,
     )
+
+
+def plot_visibility_3d(obs: ObservabilityData, ax: Axes3D, subjects: set) -> None:
+    """
+    Plot the visibility of a set of obstacles in a 3D point cloud of states.
+    """
+    lm_to_c = get_landmark_to_color(obs.source_ds)
+
+    # set all colors that aren't in subjects list to grey
+    for subj in set(lm_to_c.keys()) - subjects:
+        lm_to_c[subj] = (0.5, 0.5, 0.5, 0.1)
+
+    df = obs.data_long_unwindowed
+    colors = [lm_to_c[row["subject"]] for _, row in df.iterrows()]
+    ax.scatter(df["x_m"], df["y_m"], df["orientation_rad"], c=colors)  # type: ignore
+    ax.set_xlabel("x (m)")
+    ax.set_ylabel("y (m)")
+    ax.set_zlabel(r"$\theta$ (radians)")
+
+    ax.set_title("Landmark visibility vs. robot state")
+
+    # add a legend with the colors on it
+    legend_elements = [
+        Line2D(
+            [0],
+            [0],
+            marker="o",
+            linestyle="none",
+            color=lm_to_c[s][:3],  # RGB only
+            markerfacecolor=lm_to_c[s],
+            label=f"Landmark {s}",
+        )
+        for s in sorted(subjects)
+    ]
+
+    ax.legend(handles=legend_elements)
