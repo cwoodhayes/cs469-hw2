@@ -23,6 +23,7 @@ from hw2.plot import (
     plot_trajectories_pretty,
     plot_visibility_3d,
     plot_visibility_3d_numpy,
+    sync_axes,
 )
 
 REPO_ROOT = pathlib.Path(__file__).parent
@@ -146,6 +147,9 @@ def lib_experiments(ds: Dataset):
     ax2 = fig.add_subplot(212, projection="3d")
     plot_visibility_3d(obs, ax2, {subj})
     ax2.set_title("Training set ground truth labels (y)")
+
+    sync_axes(ax, ax2)
+    sync_axes(ax2, ax)
 
 
 if __name__ == "__main__":

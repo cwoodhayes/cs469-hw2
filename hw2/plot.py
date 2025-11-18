@@ -405,3 +405,16 @@ def plot_visibility_3d_numpy(
     ]
 
     ax.legend(handles=legend_elements)
+
+
+def sync_axes(ax_master, ax_slave):
+    """Make 2 axes move together on a figure."""
+
+    def on_move(event):
+        if event.inaxes is not ax_master:
+            return
+        ax_slave.view_init(elev=ax_master.elev, azim=ax_master.azim)
+        ax_slave.roll = ax_master.roll
+        ax_slave.figure.canvas.draw_idle()
+
+    ax_master.figure.canvas.mpl_connect("motion_notify_event", on_move)

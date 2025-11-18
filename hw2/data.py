@@ -249,7 +249,10 @@ class ObservabilityData:
         self._generate_data_unwindowed()
 
     def test_train_split(
-        self, test_size: float = 0.2, asdict: bool = False
+        self,
+        test_size: float = 0.2,
+        asdict: bool = False,
+        boolval: bool = True,
     ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         """
         Split the dataset into test & training data+labels
@@ -258,17 +261,26 @@ class ObservabilityData:
             test_size: % of the dataset to reserve as testing data
             subject: if true, return landmarks as dictionary. if false,
             break each landmark into its own column.
+            boolval: if true, and subject=True, make the values of each lm
+            column either 0 or 1, rather than [0, N] for max N observations.
 
         Returns:
             (X_train, X_test, y_train, y_test)
         """
+
+        def lm_map(lm: pd.Series, subj: int) -> int:
+            if boolval:
+                return 1 if lm[subj] > 0 else 0
+            else:
+                return lm[subj]
+
         X = self.data[["x_m", "y_m", "orientation_rad"]]
         if asdict:
             y = self.data[["landmarks"]]
         else:
             y = pd.DataFrame()
             for subj in self.data["landmarks"].iloc[0].keys():
-                y[subj] = self.data["landmarks"].map(lambda lm: lm[subj])
+                y[subj] = self.data["landmarks"].map(lambda lm: lm_map(lm, subj))
         N = int(len(X) * (1 - test_size))
         return X.iloc[:N], X.iloc[N:], y.iloc[:N], y.iloc[N:]
 
