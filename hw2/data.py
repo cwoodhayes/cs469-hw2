@@ -203,6 +203,8 @@ class Opts(Flag):
 
     CONTINUOUS_ROT = auto()
     """Use sin(theta), cos(theta) rather than theta."""
+    SHUFFLE = auto()
+    """Randomly shuffle the states so they're not in timeseries order."""
 
     NONE = auto()
     """don't do anything (used as a placeholder for None.)"""
@@ -298,6 +300,11 @@ class ObservabilityData:
             y = pd.DataFrame()
             for subj in self.data["landmarks"].iloc[0].keys():
                 y[subj] = self.data["landmarks"].map(lambda lm: lm_map(lm, subj))
+
+        if Opts.SHUFFLE in opts:
+            perm = np.random.permutation(len(X))
+            X = X.iloc[perm].reset_index(drop=True)
+            y = y.iloc[perm].reset_index(drop=True)
 
         N = int(len(X) * (1 - test_size))
         return X.iloc[:N], X.iloc[N:], y.iloc[:N], y.iloc[N:]

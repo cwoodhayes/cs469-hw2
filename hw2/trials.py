@@ -22,7 +22,7 @@ def clf_trial(
     X_test: pd.DataFrame,
     y_train: pd.DataFrame,
     y_test: pd.DataFrame,
-) -> plt.Figure:
+) -> None:
     """Run a trial on a classifier setup."""
     clf.fit(X_train.to_numpy(), y_train[subj].to_numpy())
 
@@ -30,7 +30,7 @@ def clf_trial(
     yhat_test = clf.predict(X_test.to_numpy())
 
     # visualize the output
-    fig = plt.figure("libtest - trainout")
+    fig = plt.figure(label)
     ax = fig.add_subplot(211, projection="3d")
     plot_visibility_3d_numpy(
         obs.source_ds, X_test.to_numpy(), yhat_test, ax, subject=subj
@@ -56,5 +56,3 @@ def clf_trial(
     disp.ax_.set_title(label)
 
     fig.suptitle(label)
-
-    return fig

@@ -131,12 +131,30 @@ def lib_experiments(ds: Dataset):
 
     clf = svm.SVC(kernel="rbf")
     clf_trial(
-        obs, clf, 13, "rbf, continuous rotation", *obs.preprocess(Opts.CONTINUOUS_ROT)
+        obs,
+        clf,
+        13,
+        "rbf, continuous rotation",
+        *obs.preprocess(Opts.CONTINUOUS_ROT | Opts.SHUFFLE),
     )
-    # clf_trial(obs, clf, 13, *obs.preprocess())
 
-    clf = svm.SVC(kernel="sigmoid", degree=8)
-    clf_trial(obs, clf, 13, "sigmoid, cont. rot", *obs.preprocess(Opts.CONTINUOUS_ROT))
+    # clf = svm.SVC(kernel="sigmoid", degree=8)
+    # clf_trial(
+    #     obs,
+    #     clf,
+    #     13,
+    #     "sigmoid, cont. rot",
+    #     *obs.preprocess(Opts.CONTINUOUS_ROT | Opts.SHUFFLE),
+    # )
+
+    # clf = svm.SVC(kernel="poly", degree=8)
+    # clf_trial(
+    #     obs,
+    #     clf,
+    #     13,
+    #     "poly 8, cont. rot",
+    #     *obs.preprocess(Opts.CONTINUOUS_ROT | Opts.SHUFFLE),
+    # )
 
 
 if __name__ == "__main__":
