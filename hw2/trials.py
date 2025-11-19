@@ -3,6 +3,7 @@ Methods for testing out different classifiers.
 """
 
 from typing import Any
+from matplotlib.figure import Figure
 import numpy as np
 import pandas as pd
 from sklearn.metrics import ConfusionMatrixDisplay
@@ -57,3 +58,41 @@ def clf_trial(
     disp.figure_.number = f"trial_conf_{label}"
 
     fig.suptitle(label)
+
+
+def clf_trial_sample_points(
+    clf: svm.SVM, c1: np.ndarray | tuple, c2: np.ndarray | tuple, fig: Figure
+):
+    """Demonstrate SVM on a simple bimodal distribution.
+
+    Args:
+        clf (svm.SVM): classifier to be trained
+        c1: mean of distribution 1
+        c2: mean of distribution 2
+        title (str): title of this experiment, used for plots.
+    """
+    # generate some simple data to test a classifier with
+    # a bimodal distribution of 1000 points.
+    N = 1000
+    mean1 = np.array(c1)
+    mean2 = np.array(c2)
+    cov = np.eye(3)
+
+    X0 = np.random.multivariate_normal(mean1, cov, size=N // 2)
+    X1 = np.random.multivariate_normal(mean2, cov, size=N // 2)
+
+    X = np.vstack([X0, X1])
+    y = np.hstack([np.zeros(N // 2), np.ones(N // 2)])
+
+    ax = fig.add_subplot(211, projection="3d")
+    ax.set_title("Ground Truth Labels")
+
+    ax.scatter(X[:, 0], X[:, 1], X[:, 2], c=y)
+
+    # now classify & plot resulting labels
+    clf.fit(X, y)
+    yhat = clf.predict(X)
+
+    ax2 = fig.add_subplot(212, projection="3d")
+    ax2.set_title(r"Classifier Output Labels ($\hat{y}$)")
+    ax2.scatter(X[:, 0], X[:, 1], X[:, 2], c=yhat)

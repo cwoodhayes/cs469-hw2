@@ -25,7 +25,7 @@ from hw2.plot import (
     plot_visibility_3d_numpy,
     sync_axes,
 )
-from hw2.trials import clf_trial
+from hw2.trials import clf_trial, clf_trial_sample_points
 
 REPO_ROOT = pathlib.Path(__file__).parent
 FIGURES_DIR = REPO_ROOT / "figures"
@@ -47,8 +47,9 @@ def main():
 
     # partA1(ds)
     # partA2(ds)
+    partA3(ds)
 
-    lib_experiments(ds)
+    # lib_experiments(ds)
 
     if ns.save:
         print("Saving figures...")
@@ -114,6 +115,23 @@ def partA2(ds: Dataset):
 
     ax = fig.add_subplot(224, projection="3d")
     plot_visibility_3d(obs, ax, {6, 8})
+
+
+def partA3(ds: Dataset):
+    obs = ObservabilityData(ds, sliding_window_len_s=2.0, freq_hz=2.0)
+
+    from sklearn import svm
+
+    clf = svm.SVC(kernel="rbf")
+
+    fig = plt.figure("A3 - sample points linsep")
+    clf_trial_sample_points(clf, (0, 0, 0), (5, 5, 5), fig)
+    fig.suptitle("SVM demo - linearly separable points")
+
+    clf = svm.SVC(kernel="rbf")
+    fig = plt.figure("A3 - sample points unsep")
+    clf_trial_sample_points(clf, (0, 0, 0), (1, 1, 1), fig)
+    fig.suptitle("SVM demo - non-separable points")
 
 
 def lib_experiments(ds: Dataset):
