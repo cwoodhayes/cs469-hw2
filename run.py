@@ -10,7 +10,7 @@ import argparse
 import pathlib
 import signal
 
-from hw2.data import Dataset, ObservabilityData
+from hw2.data import Dataset, ObservabilityData, Opts
 
 from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
@@ -25,6 +25,7 @@ from hw2.plot import (
     plot_visibility_3d_numpy,
     sync_axes,
 )
+from hw2.trials import clf_trial
 
 REPO_ROOT = pathlib.Path(__file__).parent
 FIGURES_DIR = REPO_ROOT / "figures"
@@ -80,8 +81,9 @@ def partA1(ds: Dataset):
     axes: list[Axes] = fig.subplots(1, 3)
 
     print(len(obs.data))
-    iloc_list = [100, 200, 554]
+    iloc_list = [100, 200, 340]
     for i, iloc in enumerate(iloc_list):
+        print(iloc)
         row = obs.data.iloc[iloc]
         plot_single_observation(obs, axes[i], row)
         axes[i].set_title(f"t={round(row['time_s'], 2)}")
@@ -124,45 +126,17 @@ def lib_experiments(ds: Dataset):
     https://scikit-learn.org/stable/modules/svm.html
     """
     from sklearn import svm
-    from sklearn.metrics import ConfusionMatrixDisplay
 
     obs = ObservabilityData(ds, freq_hz=2.0, sliding_window_len_s=2.0)
 
-    X_train, X_test, y_train, y_test = obs.test_train_split()
+    clf = svm.SVC(kernel="rbf")
+    clf_trial(
+        obs, clf, 13, "rbf, continuous rotation", *obs.preprocess(Opts.CONTINUOUS_ROT)
+    )
+    # clf_trial(obs, clf, 13, *obs.preprocess())
 
-    # convert X to use sin(theta), cos(theta) rather than just theta
-    X = X_train.copy()
-    X["sin"] = np.sin(X_train["orientation_rad"])
-    X["cos"] = np.cos(X_train["orientation_rad"])
-    del X["orientation_rad"]
-
-    clf = svm.SVC(kernel="poly", degree=8)
-    # train a classifier for a landmark
-    subj = 13
-    clf.fit(X.to_numpy(), y_train[subj].to_numpy())
-
-    # classify the training set
-    yhat_train = clf.predict(X.to_numpy())
-
-    # visualize the output
-    fig = plt.figure("libtest - trainout")
-    ax = fig.add_subplot(211, projection="3d")
-    plot_visibility_3d_numpy(ds, X_train.to_numpy(), yhat_train, ax, subject=subj)
-    ax.set_title(r"Training set predicted labels ($\hat{y}$)")
-
-    # compare against ground truth labels
-    ax2 = fig.add_subplot(212, projection="3d")
-    plot_visibility_3d(obs, ax2, {subj})
-    ax2.set_title("Training set ground truth labels (y)")
-
-    sync_axes(ax, ax2)
-    sync_axes(ax2, ax)
-
-    # print % correct
-    n_correct = np.count_nonzero(yhat_train == y_train[subj].to_numpy())
-    print(f"{n_correct}/{len(y_train)} correct ({100 * n_correct / len(y_train):.2f}%)")
-    # This computes and plots in one step
-    ConfusionMatrixDisplay.from_predictions(y_train[subj].to_numpy(), yhat_train)
+    clf = svm.SVC(kernel="sigmoid", degree=8)
+    clf_trial(obs, clf, 13, "sigmoid, cont. rot", *obs.preprocess(Opts.CONTINUOUS_ROT))
 
 
 if __name__ == "__main__":

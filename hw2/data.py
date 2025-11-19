@@ -5,6 +5,7 @@ Code for loading in the experimental data
 from __future__ import annotations
 
 from dataclasses import InitVar, asdict, dataclass, field, fields
+from enum import Enum, Flag, auto
 import pathlib
 
 import numpy as np
@@ -197,6 +198,16 @@ class Dataset:
         return out
 
 
+class Opts(Flag):
+    """Options for how to preprocess observability data."""
+
+    CONTINUOUS_ROT = auto()
+    """Use sin(theta), cos(theta) rather than theta."""
+
+    NONE = auto()
+    """don't do anything (used as a placeholder for None.)"""
+
+
 @dataclass
 class ObservabilityData:
     """
@@ -248,8 +259,9 @@ class ObservabilityData:
         self._generate_data_long()
         self._generate_data_unwindowed()
 
-    def test_train_split(
+    def preprocess(
         self,
+        opts: Opts = Opts.NONE,
         test_size: float = 0.2,
         asdict: bool = False,
         boolval: bool = True,
@@ -274,13 +286,19 @@ class ObservabilityData:
             else:
                 return lm[subj]
 
-        X = self.data[["x_m", "y_m", "orientation_rad"]]
+        X = self.data[["x_m", "y_m", "orientation_rad"]].copy()
+        if Opts.CONTINUOUS_ROT in opts:
+            X["sin"] = np.sin(X["orientation_rad"])
+            X["cos"] = np.cos(X["orientation_rad"])
+            del X["orientation_rad"]
+
         if asdict:
             y = self.data[["landmarks"]]
         else:
             y = pd.DataFrame()
             for subj in self.data["landmarks"].iloc[0].keys():
                 y[subj] = self.data["landmarks"].map(lambda lm: lm_map(lm, subj))
+
         N = int(len(X) * (1 - test_size))
         return X.iloc[:N], X.iloc[N:], y.iloc[:N], y.iloc[N:]
 
