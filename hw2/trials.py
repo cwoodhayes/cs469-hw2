@@ -30,7 +30,7 @@ def clf_trial(
     yhat_test = clf.predict(X_test.to_numpy())
 
     # visualize the output
-    fig = plt.figure(label)
+    fig = plt.figure(f"trial_{label}")
     ax = fig.add_subplot(211, projection="3d")
     plot_visibility_3d_numpy(
         obs.source_ds, X_test.to_numpy(), yhat_test, ax, subject=subj
@@ -54,5 +54,6 @@ def clf_trial(
     # This computes and plots in one step
     disp = ConfusionMatrixDisplay.from_predictions(y_test[subj].to_numpy(), yhat_test)
     disp.ax_.set_title(label)
+    disp.figure_.number = f"trial_conf_{label}"
 
     fig.suptitle(label)

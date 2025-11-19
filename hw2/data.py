@@ -302,6 +302,7 @@ class ObservabilityData:
                 y[subj] = self.data["landmarks"].map(lambda lm: lm_map(lm, subj))
 
         if Opts.SHUFFLE in opts:
+            np.random.seed(0)
             perm = np.random.permutation(len(X))
             X = X.iloc[perm].reset_index(drop=True)
             y = y.iloc[perm].reset_index(drop=True)

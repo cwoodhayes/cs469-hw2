@@ -128,16 +128,18 @@ def lib_experiments(ds: Dataset):
     from sklearn import svm
 
     obs = ObservabilityData(ds, freq_hz=2.0, sliding_window_len_s=2.0)
+    subj = 20
 
     clf = svm.SVC(kernel="rbf")
     clf_trial(
         obs,
         clf,
-        13,
+        subj,
         "rbf, continuous rotation",
         *obs.preprocess(Opts.CONTINUOUS_ROT | Opts.SHUFFLE),
     )
 
+    # this doesn't work as well
     # clf = svm.SVC(kernel="sigmoid", degree=8)
     # clf_trial(
     #     obs,
@@ -147,14 +149,17 @@ def lib_experiments(ds: Dataset):
     #     *obs.preprocess(Opts.CONTINUOUS_ROT | Opts.SHUFFLE),
     # )
 
-    # clf = svm.SVC(kernel="poly", degree=8)
-    # clf_trial(
-    #     obs,
-    #     clf,
-    #     13,
-    #     "poly 8, cont. rot",
-    #     *obs.preprocess(Opts.CONTINUOUS_ROT | Opts.SHUFFLE),
-    # )
+    clf = svm.SVC(kernel="poly", degree=8)
+    clf_trial(
+        obs,
+        clf,
+        subj,
+        "poly 8, cont. rot",
+        *obs.preprocess(Opts.CONTINUOUS_ROT | Opts.SHUFFLE),
+    )
+
+    # based on this experiment, i'm going to go ahead and
+    # implement RBF kernel.
 
 
 if __name__ == "__main__":
