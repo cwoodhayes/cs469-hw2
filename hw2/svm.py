@@ -38,6 +38,7 @@ class SVM:
         kernel: Literal["rbf"]
         C: float
         rbf_stddev: float
+        alpha_epsilon: float = 1e-8
 
     def __init__(self, cfg: Config) -> None:
         self._fitted = False
@@ -55,7 +56,6 @@ class SVM:
         self._svec_indices: None | np.ndarray = None
         self._b: float = 0.0
         self._alpha: None | np.ndarray = None
-        self._w: None | np.ndarray = None
 
     @property
     def svecs(self) -> np.ndarray:
@@ -65,10 +65,9 @@ class SVM:
         return self._alpha[self._svec_indices]  # type: ignore
 
     def rbf_kernel(self, x1: np.ndarray, x2: np.ndarray) -> np.ndarray:
-        num = np.linalg.norm(x1 - x2, 2, 0) ** 2
-        exp = -num / 2 / self.c.rbf_stddev
-        out = np.exp(exp)
-        return out
+        sqdist = np.sum((x1 - x2) ** 2)
+        denom = 2 * self.c.rbf_stddev**2
+        return np.exp(-sqdist / denom)
 
     def fit(self, X: np.ndarray, y: np.ndarray) -> None:
         """Train the classifier on a dataset.
@@ -77,6 +76,12 @@ class SVM:
             X (np.ndarray): training data, shape=(n_samples, n_features)
             y (np.ndarray): training labels, shape=(n_samples,)
         """
+        # apparently the QP solver may break if we give it 0 & 1 as classes;
+        # it needs 1, -1
+        y = np.where(y == 0, -1, 1)
+        if np.any(~((y == -1) | (y == 1))):
+            raise SVMError("Invalid values in y")
+
         # create H s.t. H_ij = y_i*y_j*(phi(x_i) dot phi(x_j))
         L = len(y)
         H = np.empty(shape=(L, L))
@@ -97,27 +102,24 @@ class SVM:
         lb = np.zeros(shape=L)
         ub = np.ones(shape=L) * self.c.C
         # phrase yT @ alpha = 0 as Ax=b by setting A to diag(y)
-        A = np.diag(y)
-        b = np.zeros(shape=L)
+        A = y[np.newaxis, :]
+        b = np.array([0.0])
         # we don't use Gx <= h
-        alpha = solve_qp(P=P, q=q, A=A, b=b, lb=lb, ub=ub, solver="proxqp")
+        alpha = solve_qp(P=P, q=q, A=A, b=b, lb=lb, ub=ub, solver="clarabel")
         if type(alpha) is not np.ndarray:
             raise SVMError(f"Could not solve QP equation; returned {alpha}")
 
-        # note that this is not "w" as described in Fletcher, since we can't
-        # actually calculate it (it involves taking phi(x) directly).
-        # this is actually just the weight that we can pass into phi(x),
-        # which we will evaluate via the kernel trick during classification.
-        w = np.empty(shape=X.shape[1])
-        for i in range(L):
-            w += alpha[i] * y[i] * X[i]
+        # note that we can't actually calculate "w" as described in Fletcher,
+        # since it involves taking phi(x) directly. We actually use it with the kernel
+        # trick in the prediction function.
 
         # TODO remove this check and just vectorize if it works
         # assert alpha * y * X == w
-        self._w = w
 
         # extract the support vectors
-        svec_indices = np.where((0 < alpha) & (alpha <= self.c.C))[0]
+        # we need to use epsilon instead of 0 cuz the numerical solver
+        # never quite reaches 0.
+        svec_indices = np.where((self.c.alpha_epsilon < alpha) & (alpha <= self.c.C))[0]
 
         # finally, calculate b
         # again, do this non-vectorized for now
@@ -133,6 +135,7 @@ class SVM:
         self._y = y
         self._svec_indices = svec_indices
         self._b = b  # type: ignore
+        self._alpha = alpha
         self._fitted = True
 
     def predict(self, x: np.ndarray) -> np.ndarray:
@@ -147,5 +150,10 @@ class SVM:
         if not self._fitted:
             raise SVMError("fit() has not been called.")
 
-        test = self.kernel(self._w, x) + self._b  # type: ignore
-        return (test > 0).astype(int)
+        out = np.zeros(x.shape[0])
+        for i, x in enumerate(x):
+            s = 0
+            for m in self._svec_indices:  # type: ignore
+                s += self._alpha[m] * self._y[m] * self.kernel(self._X[m], x)  # type: ignore
+            out[i] = s + self._b
+        return (out > 0).astype(int)
