@@ -76,11 +76,8 @@ class SVM:
             X (np.ndarray): training data, shape=(n_samples, n_features)
             y (np.ndarray): training labels, shape=(n_samples,)
         """
-        # apparently the QP solver may break if we give it 0 & 1 as classes;
-        # it needs 1, -1
+        # this implementation assumes y \elem {-1, 1}, so we need to convert {0, 1}
         y = np.where(y == 0, -1, 1)
-        if np.any(~((y == -1) | (y == 1))):
-            raise SVMError("Invalid values in y")
 
         # create H s.t. H_ij = y_i*y_j*(phi(x_i) dot phi(x_j))
         L = len(y)
@@ -112,9 +109,6 @@ class SVM:
         # note that we can't actually calculate "w" as described in Fletcher,
         # since it involves taking phi(x) directly. We actually use it with the kernel
         # trick in the prediction function.
-
-        # TODO remove this check and just vectorize if it works
-        # assert alpha * y * X == w
 
         # extract the support vectors
         # we need to use epsilon instead of 0 cuz the numerical solver
