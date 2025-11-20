@@ -12,7 +12,12 @@ from hw2 import svm
 import matplotlib.pyplot as plt
 
 from hw2.data import ObservabilityData
-from hw2.plot import plot_visibility_3d, plot_visibility_3d_numpy, sync_axes
+from hw2.plot import (
+    plot_performance_comparison,
+    plot_visibility_3d,
+    plot_visibility_3d_numpy,
+    sync_axes,
+)
 
 
 def clf_trial(
@@ -36,21 +41,7 @@ def clf_trial(
 
     # visualize the output
     fig = plt.figure(f"trial_{label}")
-    ax = fig.add_subplot(211, projection="3d")
-    plot_visibility_3d_numpy(
-        obs.source_ds, X_test.to_numpy(), yhat_test, ax, subject=subj
-    )
-    ax.set_title(r"Training set predicted labels ($\hat{y}$)")
-
-    # compare against ground truth labels
-    ax2 = fig.add_subplot(212, projection="3d")
-    plot_visibility_3d_numpy(
-        obs.source_ds, X_test.to_numpy(), y_test[subj].to_numpy(), ax2, subject=subj
-    )
-    ax2.set_title("Training set ground truth labels (y)")
-
-    sync_axes(ax, ax2)
-    sync_axes(ax2, ax)
+    plot_performance_comparison(obs, subj, fig, X_test, y_test, yhat_test)
 
     # print % correct
     n_correct = np.count_nonzero(yhat_test == y_test[subj].to_numpy())

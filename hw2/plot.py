@@ -24,7 +24,7 @@ RGBATuple = tuple[float, float, float, float]
 def get_landmark_to_color(ds: Dataset) -> dict[int, RGBATuple]:
     """Generate dictionary of landmarks to colors."""
     N = len(ds.landmarks)
-    cmap = cm.get_cmap("tab20", N)  # or tab10, Set3, Dark2, Paired, etc.
+    cmap = cm.get_cmap("tab20", N)
     colors = [cmap(i) for i in range(N)]
     lm_subj = ds.landmarks["subject"]
     return {subj: c for subj, c in zip(lm_subj, colors)}  # type: ignore
@@ -418,3 +418,26 @@ def sync_axes(ax_master, ax_slave):
         ax_slave.figure.canvas.draw_idle()
 
     ax_master.figure.canvas.mpl_connect("motion_notify_event", on_move)
+
+
+def plot_performance_comparison(
+    obs: ObservabilityData, subj: int, fig: Figure, X_test, y_test, yhat_test
+) -> None:
+    # visualize the output
+    ax = fig.add_subplot(211, projection="3d")
+    plot_visibility_3d_numpy(
+        obs.source_ds, X_test.to_numpy(), yhat_test, ax, subject=subj
+    )
+    ax.set_title(r"Training set predicted labels ($\hat{y}$)")
+
+    # compare against ground truth labels
+    ax2 = fig.add_subplot(212, projection="3d")
+    if type(y_test) is pd.DataFrame:
+        y_test = y_test[subj].to_numpy()
+    plot_visibility_3d_numpy(
+        obs.source_ds, X_test.to_numpy(), y_test, ax2, subject=subj
+    )
+    ax2.set_title("Training set ground truth labels (y)")
+
+    sync_axes(ax, ax2)
+    sync_axes(ax2, ax)

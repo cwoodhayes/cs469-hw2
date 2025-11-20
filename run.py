@@ -22,6 +22,7 @@ import numpy as np
 
 from hw2.plot import (
     plot_landmark_bars,
+    plot_performance_comparison,
     plot_single_observation,
     plot_trajectories_pretty,
     plot_visibility_3d,
@@ -145,17 +146,6 @@ def partB(ds: Dataset, overwrite_files: bool = False):
         Opts.CONTINUOUS_ROT | Opts.SHUFFLE
     )
 
-    # subj = 11
-    # cfg = svm.SVM.Config("rbf", 5.0, 1.0)
-    # clf = svm.SVM(cfg)
-    # clf_trial(
-    #     obs,
-    #     clf,
-    #     subj,
-    #     "rbf, continuous rotation",
-    #     *obs.preprocess(Opts.CONTINUOUS_ROT | Opts.SHUFFLE),
-    # )
-
     # try some values for C and sigma for grid search
     Cs = [0.1, 1, 10, 100]
     sigmas = [0.1, 0.5, 1, 2, 5]
@@ -225,10 +215,21 @@ def partB(ds: Dataset, overwrite_files: bool = False):
     plt.xlabel("C")
     plt.xscale("log")
     plt.ylabel(r"$\sigma$")
-    plt.title(
-        f"Grid search results for ds0\nBest: C={Cs[best_acc_i[0]]}, "
+    desc = (
+        f"Best: C={Cs[best_acc_i[0]]}, "
         f"sigma={sigmas[best_acc_i[1]]}, accuracy={accuracy[best_acc_i]:.1f}%"
     )
+    plt.title(f"Grid search results for ds0\n{desc}")
+
+    # show detailed performance of landmarks from most successful
+    subj = 14  # just picked a random one to visualize
+    best_df = grid_data[best_acc_i]
+    X_test = best_df[["x_m", "y_m"]].copy()
+    X_test["orientation_rad"] = np.arccos(best_df["cos"])
+    y_test = best_df[f"y_{subj}"]
+    yhat_test = best_df[f"yhat_{subj}"]
+    fig = plt.figure("B - best accuracy 3D plot")
+    plot_performance_comparison(obs, subj, fig, X_test, y_test, yhat_test)
 
 
 def lib_experiments(ds: Dataset):
