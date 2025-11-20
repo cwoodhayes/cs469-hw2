@@ -87,7 +87,7 @@ def clf_trial_sample_points(
     ax = fig.add_subplot(211, projection="3d")
     ax.set_title("Ground Truth Labels")
 
-    ax.scatter(X[:, 0], X[:, 1], X[:, 2], c=y)
+    ax.scatter(X[:, 0], X[:, 1], X[:, 2], c=y)  # type: ignore
 
     # now classify & plot resulting labels
     clf.fit(X, y)
@@ -95,4 +95,4 @@ def clf_trial_sample_points(
 
     ax2 = fig.add_subplot(212, projection="3d")
     ax2.set_title(r"Classifier Output Labels ($\hat{y}$)")
-    ax2.scatter(X[:, 0], X[:, 1], X[:, 2], c=yhat)
+    ax2.scatter(X[:, 0], X[:, 1], X[:, 2], c=yhat)  # type: ignore

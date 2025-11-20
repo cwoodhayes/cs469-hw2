@@ -11,6 +11,7 @@ import pathlib
 import signal
 
 from hw2.data import Dataset, ObservabilityData, Opts
+from hw2 import svm
 
 from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
@@ -118,19 +119,20 @@ def partA2(ds: Dataset):
 
 
 def partA3(ds: Dataset):
-    obs = ObservabilityData(ds, sliding_window_len_s=2.0, freq_hz=2.0)
+    # from sklearn import svm
 
-    from sklearn import svm
-
-    clf = svm.SVC(kernel="rbf")
+    # clf = svm.SVC(kernel="rbf")
+    cfg = svm.SVM.Config("rbf", 1.0, 1.0)
+    clf = svm.SVM(cfg)
 
     fig = plt.figure("A3 - sample points linsep")
-    clf_trial_sample_points(clf, (0, 0, 0), (5, 5, 5), fig)
+    clf_trial_sample_points(clf, (0, 0, 0), (5, 5, 5), fig)  # type: ignore
     fig.suptitle("SVM demo - linearly separable points")
 
-    clf = svm.SVC(kernel="rbf")
+    # clf = svm.SVC(kernel="rbf")
+    clf = svm.SVM(cfg)
     fig = plt.figure("A3 - sample points unsep")
-    clf_trial_sample_points(clf, (0, 0, 0), (1, 1, 1), fig)
+    clf_trial_sample_points(clf, (0, 0, 0), (1, 1, 1), fig)  # type: ignore
     fig.suptitle("SVM demo - non-separable points")
 
 
@@ -146,7 +148,7 @@ def lib_experiments(ds: Dataset):
     from sklearn import svm
 
     obs = ObservabilityData(ds, freq_hz=2.0, sliding_window_len_s=2.0)
-    subj = 20
+    subj = 11
 
     clf = svm.SVC(kernel="rbf")
     clf_trial(
