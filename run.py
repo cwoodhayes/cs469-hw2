@@ -139,39 +139,41 @@ def partA3(ds: Dataset):
     fig.suptitle("SVM demo - non-separable points")
 
 
-def partB(ds: Dataset, generate_data: bool = True):
+def partB(ds: Dataset, overwrite_files: bool = False):
     obs = ObservabilityData(ds, freq_hz=2.0, sliding_window_len_s=2.0)
     X_train, X_test, y_train, y_test = obs.preprocess(
         Opts.CONTINUOUS_ROT | Opts.SHUFFLE
     )
 
-    obs = ObservabilityData(ds, freq_hz=2.0, sliding_window_len_s=2.0)
-    subj = 11
+    # subj = 11
+    # cfg = svm.SVM.Config("rbf", 5.0, 1.0)
+    # clf = svm.SVM(cfg)
+    # clf_trial(
+    #     obs,
+    #     clf,
+    #     subj,
+    #     "rbf, continuous rotation",
+    #     *obs.preprocess(Opts.CONTINUOUS_ROT | Opts.SHUFFLE),
+    # )
 
-    cfg = svm.SVM.Config("rbf", 5.0, 1.0)
-    clf = svm.SVM(cfg)
-    clf_trial(
-        obs,
-        clf,
-        subj,
-        "rbf, continuous rotation",
-        *obs.preprocess(Opts.CONTINUOUS_ROT | Opts.SHUFFLE),
-    )
-
-    return
     # try some values for C and sigma for grid search
     Cs = [0.1, 1, 10, 100]
     sigmas = [0.1, 0.5, 1, 2, 5]
     out_dir = pathlib.Path(__file__).parent / "data/ds0_grid"
 
+    if overwrite_files:
+        print("WARNING: overwriting grid search files!")
+    generate_data = not out_dir.exists() or overwrite_files
     if generate_data:
         print("Writing grid search test dataset to files...")
         if not out_dir.exists():
             out_dir.mkdir(parents=True)
 
-    for c in Cs:
-        for sigma in sigmas:
-            out_path = out_dir / f"C{c}_S{sigma}.csv".replace(".", "-")
+    grid_data = np.empty(shape=(len(Cs), len(sigmas)), dtype=object)
+    accuracy = np.empty_like(grid_data, dtype=float)
+    for i, c in enumerate(Cs):
+        for j, sigma in enumerate(sigmas):
+            csv_path = out_dir / f"C{c}_S{sigma}.csv".replace(".", "-")
 
             if generate_data:
                 cfg = svm.SVM.Config("rbf", c, sigma)
@@ -191,9 +193,42 @@ def partB(ds: Dataset, generate_data: bool = True):
                 print()
 
                 # write to file
-                if out_path.exists():
-                    out_path.unlink()
-                out.to_csv(out_path)
+                if csv_path.exists():
+                    csv_path.unlink()
+                out.to_csv(csv_path)
+
+            # grab data from files
+            df = pd.read_csv(csv_path)
+            grid_data[i][j] = df
+
+            # compute some metrics
+            acc = []
+            for lm in obs.landmarks:
+                y = df[f"y_{lm}"]
+                yhat = df[f"yhat_{lm}"]
+                n_correct = np.count_nonzero(yhat == y.to_numpy())
+                acc.append(n_correct / len(yhat))
+            accuracy[i][j] = np.array(acc).mean() * 100
+
+    # additional summary metrics
+    # what was the best?
+    best_acc_i = np.unravel_index(np.argmax(accuracy), accuracy.shape)
+
+    # alright. now do some visualization.
+    # plot a 2d plot of the grid where dots are colored for their accuracy score
+    plt.figure()
+    x = np.tile(Cs, len(sigmas))
+    y = np.tile(sigmas, len(Cs))
+    color = np.array(accuracy).flatten()
+    scatter = plt.scatter(x, y, c=color, cmap="viridis", s=200)
+    plt.colorbar(scatter, label="Accuracy %")
+    plt.xlabel("C")
+    plt.xscale("log")
+    plt.ylabel(r"$\sigma$")
+    plt.title(
+        f"Grid search results for ds0\nBest: C={Cs[best_acc_i[0]]}, "
+        f"sigma={sigmas[best_acc_i[1]]}, accuracy={accuracy[best_acc_i]:.1f}%"
+    )
 
 
 def lib_experiments(ds: Dataset):
