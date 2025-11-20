@@ -250,6 +250,8 @@ class ObservabilityData:
     the robot state is taken from the nearest neighbor interpolation in the groundtruths
     """
 
+    landmarks: list[int] = field(init=False)
+
     def __post_init__(self) -> None:
         # sanity check -- if the sample period is longer than the sliding window, we
         # will miss samples
@@ -315,6 +317,7 @@ class ObservabilityData:
         ds = self.source_ds
         msr = ds.measurement_fix
         subjects = ds.measurement_fix["subject"].unique()
+        self.landmarks = sorted(list(subjects))
         time_grid = np.arange(
             msr["time_s"].iloc[0], msr["time_s"].iloc[-1], 1 / self.freq_hz
         )

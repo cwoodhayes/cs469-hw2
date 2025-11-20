@@ -10,6 +10,8 @@ import argparse
 import pathlib
 import signal
 
+import pandas as pd
+
 from hw2.data import Dataset, ObservabilityData, Opts
 from hw2 import svm
 
@@ -137,19 +139,47 @@ def partA3(ds: Dataset):
     fig.suptitle("SVM demo - non-separable points")
 
 
-def partB(ds: Dataset):
+def partB(ds: Dataset, generate_data: bool = True):
     obs = ObservabilityData(ds, freq_hz=2.0, sliding_window_len_s=2.0)
-    subj = 11
-
-    cfg = svm.SVM.Config("rbf", 10.0, 1.0)
-    clf = svm.SVM(cfg)
-    clf_trial(
-        obs,
-        clf,
-        subj,
-        "rbf, continuous rotation",
-        *obs.preprocess(Opts.CONTINUOUS_ROT | Opts.SHUFFLE),
+    X_train, X_test, y_train, y_test = obs.preprocess(
+        Opts.CONTINUOUS_ROT | Opts.SHUFFLE
     )
+
+    # try some values for C and sigma for grid search
+    Cs = [0.1, 1, 10, 100]
+    sigmas = [0.1, 0.5, 1, 2, 5]
+    out_dir = pathlib.Path(__file__).parent / "data/ds0_grid"
+
+    if generate_data:
+        print("Writing grid search test dataset to files...")
+        if not out_dir.exists():
+            out_dir.mkdir(parents=True)
+
+    for c in Cs:
+        for sigma in sigmas:
+            out_path = out_dir / f"C{c}_S{sigma}.csv".replace(".", "-")
+
+            if generate_data:
+                cfg = svm.SVM.Config("rbf", c, sigma)
+                clf = svm.SVM(cfg)
+
+                out = X_test.copy()
+
+                # train & test a separate classifier for each landmark
+                print(f"C={c}, sigma={sigma}...", end="", flush=True)
+                for lm in obs.landmarks:
+                    print(f"{lm} ", end="", flush=True)
+                    clf.fit(X_train.to_numpy(), y_train[lm].to_numpy())
+                    yhat = clf.predict(X_test.to_numpy())
+
+                    out[f"yhat_{lm}"] = yhat
+                    out[f"y_{lm}"] = y_test[lm]
+                print()
+
+                # write to file
+                if out_path.exists():
+                    out_path.unlink()
+                out.to_csv(out_path)
 
 
 def lib_experiments(ds: Dataset):
