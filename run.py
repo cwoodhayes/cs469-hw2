@@ -161,6 +161,7 @@ def partB(ds: Dataset, overwrite_files: bool = False):
 
     grid_data = np.empty(shape=(len(Cs), len(sigmas)), dtype=pd.DataFrame)
     accuracy = np.empty_like(grid_data, dtype=float)
+    recall = np.empty_like(grid_data, dtype=float)
     for i, c in enumerate(Cs):
         for j, sigma in enumerate(sigmas):
             csv_path = out_dir / f"C{c}_S{sigma}.csv".replace(".", "-")
@@ -193,16 +194,25 @@ def partB(ds: Dataset, overwrite_files: bool = False):
 
             # compute some metrics
             acc = []
+            rec = []
             for lm in obs.landmarks:
                 y = df[f"y_{lm}"]
                 yhat = df[f"yhat_{lm}"]
                 n_correct = np.count_nonzero(yhat == y.to_numpy())
                 acc.append(n_correct / len(yhat))
+
+                true_pos = np.count_nonzero((yhat == y.to_numpy()) & (yhat == 1))
+                false_neg = np.count_nonzero((yhat != y.to_numpy()) & (yhat == 1))
+                denom = true_pos + false_neg
+                rec.append(true_pos / denom if denom != 0 else 0)
+
             accuracy[i][j] = np.array(acc).mean() * 100
+            recall[i][j] = np.array(rec).mean() * 100
 
     # additional summary metrics
     # what was the best?
     best_acc_i = np.unravel_index(np.argmax(accuracy), accuracy.shape)
+    best_rec_i = np.unravel_index(np.argmax(recall), recall.shape)
 
     # alright. now do some visualization.
     # plot a 2d plot of the grid where dots are colored for their accuracy score
@@ -219,7 +229,22 @@ def partB(ds: Dataset, overwrite_files: bool = False):
         f"C={Cs[best_acc_i[0]]}, "
         f"sigma={sigmas[best_acc_i[1]]}, accuracy={accuracy[best_acc_i]:.1f}%"
     )
-    plt.title(f"Grid search results for ds0\nBest: {desc}")
+    plt.title(f"Grid search results for ds0 (accuracy)\nBest: {desc}")
+
+    # now do the same for recall
+    plt.figure()
+    color = np.array(recall).flatten()
+    scatter = plt.scatter(x, y, c=color, cmap="viridis", s=200)
+    plt.colorbar(scatter, label="Mean recall % (across all landmarks)")
+    plt.xlabel("C")
+    plt.xscale("log")
+    plt.ylabel(r"$\sigma$")
+    desc = (
+        f"C={Cs[best_rec_i[0]]}, "
+        f"sigma={sigmas[best_rec_i[1]]}, recall={recall[best_rec_i]:.1f}%"
+    )
+    plt.title(f"Grid search results for ds0 (recall)\nBest: {desc}")
+    return
 
     # show detailed performance of landmarks from most successful
     subj = 19  # just picked a random one to visualize
@@ -228,9 +253,9 @@ def partB(ds: Dataset, overwrite_files: bool = False):
     X_test["orientation_rad"] = np.arccos(best_df["cos"])
     y_test = best_df[f"y_{subj}"]
     yhat_test = best_df[f"yhat_{subj}"]
-    # fig = plt.figure("B - best accuracy 3D plot")
-    # fig.suptitle("One landmark for " + desc)
-    # plot_performance_comparison(obs, subj, fig, X_test, y_test, yhat_test)
+    fig = plt.figure("B - best accuracy 3D plot")
+    fig.suptitle("One landmark for " + desc)
+    plot_performance_comparison(obs, subj, fig, X_test, y_test, yhat_test)
 
     fig2 = plt.figure("B - best accuracy ALL 3D plot")
     fig2.suptitle("All landmarks for " + desc)
