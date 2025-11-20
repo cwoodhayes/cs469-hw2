@@ -24,7 +24,7 @@ from hw2.plot import (
     plot_landmark_bars,
     plot_performance_comparison,
     plot_single_observation,
-    plot_trajectories_pretty,
+    plot_visibility_trajectory,
     plot_visibility_3d,
     plot_visibility_3d_numpy,
     sync_axes,
@@ -159,7 +159,7 @@ def partB(ds: Dataset, overwrite_files: bool = False):
         if not out_dir.exists():
             out_dir.mkdir(parents=True)
 
-    grid_data = np.empty(shape=(len(Cs), len(sigmas)), dtype=object)
+    grid_data = np.empty(shape=(len(Cs), len(sigmas)), dtype=pd.DataFrame)
     accuracy = np.empty_like(grid_data, dtype=float)
     for i, c in enumerate(Cs):
         for j, sigma in enumerate(sigmas):
@@ -211,7 +211,7 @@ def partB(ds: Dataset, overwrite_files: bool = False):
     y = np.tile(sigmas, len(Cs))
     color = np.array(accuracy).flatten()
     scatter = plt.scatter(x, y, c=color, cmap="viridis", s=200)
-    plt.colorbar(scatter, label="Accuracy %")
+    plt.colorbar(scatter, label="Mean accuracy % (across all landmarks)")
     plt.xlabel("C")
     plt.xscale("log")
     plt.ylabel(r"$\sigma$")
@@ -228,9 +228,19 @@ def partB(ds: Dataset, overwrite_files: bool = False):
     X_test["orientation_rad"] = np.arccos(best_df["cos"])
     y_test = best_df[f"y_{subj}"]
     yhat_test = best_df[f"yhat_{subj}"]
-    fig = plt.figure("B - best accuracy 3D plot")
-    fig.suptitle("One landmark for " + desc)
-    plot_performance_comparison(obs, subj, fig, X_test, y_test, yhat_test)
+    # fig = plt.figure("B - best accuracy 3D plot")
+    # fig.suptitle("One landmark for " + desc)
+    # plot_performance_comparison(obs, subj, fig, X_test, y_test, yhat_test)
+
+    fig2 = plt.figure("B - best accuracy ALL 3D plot")
+    fig2.suptitle("All landmarks for " + desc)
+    y_test_all = best_df[[f"y_{lm}" for lm in obs.landmarks]]
+    y_test_all = y_test_all.rename(columns={f"y_{lm}": lm for lm in obs.landmarks})
+    yhat_test_all = best_df[[f"yhat_{lm}" for lm in obs.landmarks]]
+    yhat_test_all = yhat_test_all.rename(
+        columns={f"yhat_{lm}": lm for lm in obs.landmarks}
+    )
+    plot_performance_comparison(obs, None, fig2, X_test, y_test_all, yhat_test_all)
 
 
 def lib_experiments(ds: Dataset):

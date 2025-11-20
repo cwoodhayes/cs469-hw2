@@ -229,7 +229,7 @@ def plot_landmark_bars(
                 g.figure.set_label(figlabel)
 
 
-def plot_trajectories_pretty(
+def plot_visibility_trajectory(
     ds: Dataset,
     fig: Figure,
     label: str,
@@ -237,7 +237,7 @@ def plot_trajectories_pretty(
 ) -> tuple[Figure, Axes]:
     """
     Show a map of the environment, with a given predicted trajectory plotted
-    alongside the ground truth trajectory
+    & colored by what landmark(s) can be seen.
 
     :param ds: full robot dataset
     :param traj: predicted robot trajectory, in the same format as ds.groundtruth
@@ -374,12 +374,18 @@ def plot_visibility_3d(obs: ObservabilityData, ax: Axes3D, subjects: set) -> Non
 
 
 def plot_visibility_3d_numpy(
-    ds: Dataset, X: np.ndarray, y: np.ndarray, ax: Axes3D, subject: int
+    ds: Dataset,
+    X: np.ndarray,
+    y: np.ndarray,
+    ax: Axes3D,
+    subject: int,
+    plot_invisible_points: bool = True,
 ) -> None:
     lm_to_c = get_landmark_to_color(ds)
 
     # set all colors that aren't the subject
-    label_to_c = [(0.5, 0.5, 0.5, 0.2), lm_to_c[subject]]
+    invisible_color = (0.5, 0.5, 0.5, 0.2) if plot_invisible_points else (0, 0, 0, 0)
+    label_to_c = [invisible_color, lm_to_c[subject]]
     colors = [label_to_c[visible] for visible in y]
 
     ax.scatter(
@@ -407,6 +413,18 @@ def plot_visibility_3d_numpy(
     ax.legend(handles=legend_elements)
 
 
+def plot_visibilities_3d(
+    ds: Dataset,
+    X: np.ndarray,
+    subj_to_y: dict[int, np.ndarray],
+    ax: Axes3D,
+) -> None:
+    """Plot the visibilities of ALL landmarks on one 3d axes."""
+    for subj, y in subj_to_y.items():
+        plot_visibility_3d_numpy(ds, X, y, ax, subj, False)
+    ax.legend_ = None
+
+
 def sync_axes(ax_master, ax_slave):
     """Make 2 axes move together on a figure."""
 
@@ -421,22 +439,33 @@ def sync_axes(ax_master, ax_slave):
 
 
 def plot_performance_comparison(
-    obs: ObservabilityData, subj: int, fig: Figure, X_test, y_test, yhat_test
+    obs: ObservabilityData,
+    subj: int | None,
+    fig: Figure,
+    X_test: pd.DataFrame,
+    y_test: pd.DataFrame,
+    yhat_test: np.ndarray | dict[int, np.ndarray],
 ) -> None:
-    # visualize the output
     ax = fig.add_subplot(211, projection="3d")
-    plot_visibility_3d_numpy(
-        obs.source_ds, X_test.to_numpy(), yhat_test, ax, subject=subj
-    )
+    if subj is None:
+        # plot all subjects
+        plot_visibilities_3d(obs.source_ds, X_test.to_numpy(), yhat_test, ax)
+    else:
+        plot_visibility_3d_numpy(
+            obs.source_ds, X_test.to_numpy(), yhat_test, ax, subject=subj
+        )
     ax.set_title(r"Training set predicted labels ($\hat{y}$)")
 
     # compare against ground truth labels
     ax2 = fig.add_subplot(212, projection="3d")
-    if type(y_test) is pd.DataFrame:
-        y_test = y_test[subj].to_numpy()
-    plot_visibility_3d_numpy(
-        obs.source_ds, X_test.to_numpy(), y_test, ax2, subject=subj
-    )
+    if subj is None:
+        plot_visibilities_3d(obs.source_ds, X_test.to_numpy(), y_test, ax2)
+    else:
+        if type(y_test) is pd.DataFrame:
+            y_test = y_test[subj].to_numpy()
+        plot_visibility_3d_numpy(
+            obs.source_ds, X_test.to_numpy(), y_test, ax2, subject=subj
+        )
     ax2.set_title("Training set ground truth labels (y)")
 
     sync_axes(ax, ax2)
