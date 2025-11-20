@@ -2,6 +2,7 @@
 Support Vector Machine implementations.
 """
 
+import warnings
 from dataclasses import dataclass
 from typing import Literal
 import numpy as np
@@ -102,7 +103,9 @@ class SVM:
         A = y[np.newaxis, :]
         b = np.array([0.0])
         # we don't use Gx <= h
-        alpha = solve_qp(P=P, q=q, A=A, b=b, lb=lb, ub=ub, solver="clarabel")
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", message="Converted matrix")
+            alpha = solve_qp(P=P, q=q, A=A, b=b, lb=lb, ub=ub, solver="clarabel")
         if type(alpha) is not np.ndarray:
             raise SVMError(f"Could not solve QP equation; returned {alpha}")
 

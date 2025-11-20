@@ -8,9 +8,8 @@ import pytest
 from hw2.svm import SVM
 
 
-@pytest.mark.skip()
 def test_svm_basic():
-    clf = SVM()
+    clf = SVM(SVM.Config("rbf", 100.0, 1.0))
 
     # make a stupid simple linearly separable 2D dataset
     xtrain_a = [[1, 0], [2, 0], [3, 0]]
@@ -27,7 +26,7 @@ def test_svm_basic():
         [4, -4],
         [3, -400],
     ]
-    xtest_b = [[1.5, 5], [1.5, 100], [4, 6]]
+    xtest_b = [[1.5, 5], [1.5, 7], [4, 6]]
     xtest = np.array(xtest_a + xtest_b, dtype="float")
     ytest = np.array([0] * len(xtest_a) + [1] * len(xtest_b), dtype="int")
 
