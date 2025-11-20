@@ -29,6 +29,7 @@ def clf_trial(
     X_test: pd.DataFrame,
     y_train: pd.DataFrame,
     y_test: pd.DataFrame,
+    figid: str | None = None,
 ) -> None:
     """Run a trial on a classifier setup."""
     time_s = timeit.timeit(
@@ -40,19 +41,31 @@ def clf_trial(
     yhat_test = clf.predict(X_test.to_numpy())
 
     # visualize the output
-    fig = plt.figure(f"trial_{label}")
+    fig = plt.figure(f"trial_{label}" if figid is None else figid)
     plot_performance_comparison(obs, subj, fig, X_test, y_test, yhat_test)
 
     # print % correct
     n_correct = np.count_nonzero(yhat_test == y_test[subj].to_numpy())
-    print(label)
-    print(f"  {n_correct}/{len(y_test)} correct ({100 * n_correct / len(y_test):.2f}%)")
+    accuracy = 100 * n_correct / len(y_test)
+
+    true_pos = np.count_nonzero(
+        (yhat_test == y_test[subj].to_numpy()) & (yhat_test == 1)
+    )
+    false_neg = np.count_nonzero(
+        (yhat_test != y_test[subj].to_numpy()) & (yhat_test == 1)
+    )
+    denom = true_pos + false_neg
+    recall = true_pos / denom if denom != 0 else 0
+
+    print(f"  {n_correct}/{len(y_test)} correct ({accuracy:.2f}%)")
+    print(f"  Recall (correctly predicted positives): {recall:.2f}%")
     # This computes and plots in one step
     disp = ConfusionMatrixDisplay.from_predictions(y_test[subj].to_numpy(), yhat_test)
     disp.ax_.set_title(label)
     disp.figure_.number = f"trial_conf_{label}"
 
-    fig.suptitle(label)
+    fig.suptitle(label + f"\naccuracy={accuracy}, recall={recall}")
+    fig.tight_layout()
 
 
 def clf_trial_sample_points(
@@ -91,3 +104,4 @@ def clf_trial_sample_points(
     ax2 = fig.add_subplot(212, projection="3d")
     ax2.set_title(r"Classifier Output Labels ($\hat{y}$)")
     ax2.scatter(X[:, 0], X[:, 1], X[:, 2], c=yhat)  # type: ignore
+    fig.tight_layout()

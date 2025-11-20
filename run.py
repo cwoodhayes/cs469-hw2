@@ -49,12 +49,12 @@ def main():
     dsdir = REPO_ROOT / "data/ds1"
     ds = Dataset.from_dataset_directory(dsdir)
 
-    # partA1(ds)
-    # partA2(ds)
-    # partA3(ds)
+    partA1(ds)
+    partA2(ds)
+    partA3(ds)
     partB(ds)
 
-    # lib_experiments(ds)
+    lib_experiments(ds)
 
     if ns.save:
         print("Saving figures...")
@@ -86,10 +86,8 @@ def partA1(ds: Dataset):
     fig = plt.figure("A1 - example states", figsize=(10, 6))
     axes: list[Axes] = fig.subplots(1, 3)
 
-    print(len(obs.data))
     iloc_list = [100, 200, 340]
     for i, iloc in enumerate(iloc_list):
-        print(iloc)
         row = obs.data.iloc[iloc]
         plot_single_observation(obs, axes[i], row)
         axes[i].set_title(f"t={round(row['time_s'], 2)}")
@@ -131,13 +129,15 @@ def partA3(ds: Dataset):
 
     fig = plt.figure("A3 - sample points linsep")
     clf_trial_sample_points(clf, (0, 0, 0), (5, 5, 5), fig)  # type: ignore
-    fig.suptitle("SVM demo - linearly separable points")
+    fig.suptitle(f"SVM demo - linearly separable points\ncfg={cfg}")
+    fig.tight_layout()
 
     # clf = svm.SVC(kernel="rbf")
     clf = svm.SVM(cfg)
     fig = plt.figure("A3 - sample points unsep")
     clf_trial_sample_points(clf, (0, 0, 0), (1, 1, 1), fig)  # type: ignore
-    fig.suptitle("SVM demo - non-separable points")
+    fig.suptitle(f"SVM demo - non-separable points\ncfg={cfg}")
+    fig.tight_layout()
 
 
 def partB(ds: Dataset, overwrite_files: bool = False):
@@ -158,6 +158,8 @@ def partB(ds: Dataset, overwrite_files: bool = False):
         print("Writing grid search test dataset to files...")
         if not out_dir.exists():
             out_dir.mkdir(parents=True)
+    else:
+        print("Loading grid search test dataset from files...")
 
     grid_data = np.empty(shape=(len(Cs), len(sigmas)), dtype=pd.DataFrame)
     accuracy = np.empty_like(grid_data, dtype=float)
@@ -216,7 +218,7 @@ def partB(ds: Dataset, overwrite_files: bool = False):
 
     # alright. now do some visualization.
     # plot a 2d plot of the grid where dots are colored for their accuracy score
-    plt.figure()
+    plt.figure("B - mean accuracy grid")
     x = np.tile(Cs, len(sigmas))
     y = np.tile(sigmas, len(Cs))
     color = np.array(accuracy).flatten()
@@ -231,9 +233,10 @@ def partB(ds: Dataset, overwrite_files: bool = False):
         f"recall={recall[best_acc_i]:.1f}%"
     )
     plt.title(f"Grid search results for ds0 (accuracy)\nBest: {desc}")
+    plt.tight_layout()
 
     # now do the same for recall
-    plt.figure()
+    plt.figure("B - mean recall grid")
     color = np.array(recall).flatten()
     scatter = plt.scatter(x, y, c=color, cmap="viridis", s=200)
     plt.colorbar(scatter, label="Mean recall % (across all landmarks)")
@@ -246,6 +249,7 @@ def partB(ds: Dataset, overwrite_files: bool = False):
         f"recall={recall[best_rec_i]:.1f}%"
     )
     plt.title(f"Grid search results for ds0 (recall)\nBest: {desc2}")
+    plt.tight_layout()
 
     # show detailed performance of landmarks from most successful
     subj = 19  # just picked a random one to visualize
@@ -267,6 +271,20 @@ def partB(ds: Dataset, overwrite_files: bool = False):
         columns={f"yhat_{lm}": lm for lm in obs.landmarks}
     )
     plot_performance_comparison(obs, None, fig2, X_test, y_test_all, yhat_test_all)
+
+    # FINALLY, let's demonstrate the impact of not splitting orientation into sin & cos
+    # on the highest accuracy params
+    cfg = svm.SVM.Config("rbf", Cs[best_acc_i[0]], sigmas[best_acc_i[1]])
+    clf = svm.SVM(cfg)
+    clf_trial(
+        obs,
+        clf,
+        subj,
+        "Highest-accuracy params, fit using direct orientation",
+        *obs.preprocess(Opts.SHUFFLE),
+        figid="B_direct_orientation",
+    )
+    plt.tight_layout()
 
 
 def lib_experiments(ds: Dataset):
@@ -293,14 +311,14 @@ def lib_experiments(ds: Dataset):
     )
 
     # this doesn't work as well
-    # clf = svm.SVC(kernel="sigmoid", degree=8)
-    # clf_trial(
-    #     obs,
-    #     clf,
-    #     13,
-    #     "sigmoid, cont. rot",
-    #     *obs.preprocess(Opts.CONTINUOUS_ROT | Opts.SHUFFLE),
-    # )
+    clf = svm.SVC(kernel="sigmoid", degree=8)
+    clf_trial(
+        obs,
+        clf,
+        13,
+        "sigmoid, cont. rot",
+        *obs.preprocess(Opts.CONTINUOUS_ROT | Opts.SHUFFLE),
+    )
 
     clf = svm.SVC(kernel="poly", degree=8)
     clf_trial(
