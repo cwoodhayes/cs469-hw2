@@ -216,19 +216,20 @@ def partB(ds: Dataset, overwrite_files: bool = False):
     plt.xscale("log")
     plt.ylabel(r"$\sigma$")
     desc = (
-        f"Best: C={Cs[best_acc_i[0]]}, "
+        f"C={Cs[best_acc_i[0]]}, "
         f"sigma={sigmas[best_acc_i[1]]}, accuracy={accuracy[best_acc_i]:.1f}%"
     )
-    plt.title(f"Grid search results for ds0\n{desc}")
+    plt.title(f"Grid search results for ds0\nBest: {desc}")
 
     # show detailed performance of landmarks from most successful
-    subj = 14  # just picked a random one to visualize
+    subj = 19  # just picked a random one to visualize
     best_df = grid_data[best_acc_i]
     X_test = best_df[["x_m", "y_m"]].copy()
     X_test["orientation_rad"] = np.arccos(best_df["cos"])
     y_test = best_df[f"y_{subj}"]
     yhat_test = best_df[f"yhat_{subj}"]
     fig = plt.figure("B - best accuracy 3D plot")
+    fig.suptitle("One landmark for " + desc)
     plot_performance_comparison(obs, subj, fig, X_test, y_test, yhat_test)
 
 
