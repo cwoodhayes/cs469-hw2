@@ -32,8 +32,6 @@ def clf_trial(
     print(f"fit() took {time_s}s to run.")
 
     # classify the test set
-    time_s = timeit.timeit(lambda: clf.predict(X_test.to_numpy()), number=1)
-    print(f"predict() took {time_s}s to run.")
     yhat_test = clf.predict(X_test.to_numpy())
 
     # visualize the output

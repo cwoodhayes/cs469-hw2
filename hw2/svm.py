@@ -48,6 +48,7 @@ class SVM:
         match self.c.kernel:
             case "rbf":
                 self.kernel = self.rbf_kernel
+                self.kernel_matrix = self.compute_rbf_kernel_matrix
             case _:
                 raise SVMError(f"Unrecognized kernel type '{self.c.kernel}'")
 
@@ -70,6 +71,14 @@ class SVM:
         denom = 2 * self.c.rbf_stddev**2
         return np.exp(-sqdist / denom)
 
+    def compute_rbf_kernel_matrix(self, X: np.ndarray) -> np.ndarray:
+        # vectorized version!!
+        sq_dists = (
+            np.sum(X**2, axis=1)[:, None] + np.sum(X**2, axis=1)[None, :] - 2 * X @ X.T
+        )
+        K = np.exp(-sq_dists / (2 * self.c.rbf_stddev**2))
+        return K
+
     def fit(self, X: np.ndarray, y: np.ndarray) -> None:
         """Train the classifier on a dataset.
 
@@ -81,13 +90,9 @@ class SVM:
         y = np.where(y == 0, -1, 1)
 
         # create H s.t. H_ij = y_i*y_j*(phi(x_i) dot phi(x_j))
+        # (vectorized after much effort)
         L = len(y)
-        H = np.empty(shape=(L, L))
-
-        # do this non-vectorized for now
-        for i in range(L):
-            for j in range(L):
-                H[i][j] = y[i] * y[j] * self.kernel(X[i], X[j])
+        H = np.outer(y, y) * self.compute_rbf_kernel_matrix(X)
 
         # find \alpha using a QP solver
         # unlike in Fletcher, we need to phrase this as a
@@ -119,14 +124,13 @@ class SVM:
         svec_indices = np.where((self.c.alpha_epsilon < alpha) & (alpha <= self.c.C))[0]
 
         # finally, calculate b
-        # again, do this non-vectorized for now
-        outer_sum = 0
-        for s in svec_indices:
-            inner_sum = 0
-            for m in svec_indices:
-                inner_sum += alpha[m] * y[m] * self.kernel(X[m], X[s])
-            outer_sum += y[s] - inner_sum
-        b = 1 / len(svec_indices) * outer_sum
+        K_sv = self.compute_rbf_kernel_matrix(X[svec_indices])
+        alpha_sv = alpha[svec_indices]
+        y_sv = y[svec_indices]
+
+        # inner_sum for all support vectors at once
+        inner_sum = (alpha_sv * y_sv) @ K_sv  # shape: (n_sv,)
+        b = np.mean(y_sv - inner_sum)
 
         self._X = X
         self._y = y
@@ -147,10 +151,17 @@ class SVM:
         if not self._fitted:
             raise SVMError("fit() has not been called.")
 
-        out = np.zeros(x.shape[0])
-        for i, x in enumerate(x):
-            s = 0
-            for m in self._svec_indices:  # type: ignore
-                s += self._alpha[m] * self._y[m] * self.kernel(self._X[m], x)  # type: ignore
-            out[i] = s + self._b
+        X_sv = self._X[self._svec_indices]  # type: ignore
+        alpha_sv = self._alpha[self._svec_indices]  # type: ignore
+        y_sv = self._y[self._svec_indices]  # type: ignore
+
+        # pairwise squared distances between X_test and support vectors
+        sq_dists = (
+            np.sum(x**2, axis=1)[:, None]
+            + np.sum(X_sv**2, axis=1)[None, :]
+            - 2 * x @ X_sv.T
+        )
+        kernel = np.exp(-sq_dists / (2 * self.c.rbf_stddev**2))
+
+        out = (kernel @ (alpha_sv * y_sv)) + self._b
         return (out > 0).astype(int)
