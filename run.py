@@ -48,7 +48,8 @@ def main():
 
     # partA1(ds)
     # partA2(ds)
-    partA3(ds)
+    # partA3(ds)
+    partB(ds)
 
     # lib_experiments(ds)
 
@@ -134,6 +135,21 @@ def partA3(ds: Dataset):
     fig = plt.figure("A3 - sample points unsep")
     clf_trial_sample_points(clf, (0, 0, 0), (1, 1, 1), fig)  # type: ignore
     fig.suptitle("SVM demo - non-separable points")
+
+
+def partB(ds: Dataset):
+    obs = ObservabilityData(ds, freq_hz=2.0, sliding_window_len_s=2.0)
+    subj = 11
+
+    cfg = svm.SVM.Config("rbf", 10.0, 1.0)
+    clf = svm.SVM(cfg)
+    clf_trial(
+        obs,
+        clf,
+        subj,
+        "rbf, continuous rotation",
+        *obs.preprocess(Opts.CONTINUOUS_ROT | Opts.SHUFFLE),
+    )
 
 
 def lib_experiments(ds: Dataset):
