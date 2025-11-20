@@ -2,6 +2,7 @@
 Methods for testing out different classifiers.
 """
 
+import timeit
 from typing import Any
 from matplotlib.figure import Figure
 import numpy as np
@@ -25,9 +26,14 @@ def clf_trial(
     y_test: pd.DataFrame,
 ) -> None:
     """Run a trial on a classifier setup."""
-    clf.fit(X_train.to_numpy(), y_train[subj].to_numpy())
+    time_s = timeit.timeit(
+        lambda: clf.fit(X_train.to_numpy(), y_train[subj].to_numpy()), number=1
+    )
+    print(f"fit() took {time_s}s to run.")
 
     # classify the test set
+    time_s = timeit.timeit(lambda: clf.predict(X_test.to_numpy()), number=1)
+    print(f"predict() took {time_s}s to run.")
     yhat_test = clf.predict(X_test.to_numpy())
 
     # visualize the output

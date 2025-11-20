@@ -145,6 +145,20 @@ def partB(ds: Dataset, generate_data: bool = True):
         Opts.CONTINUOUS_ROT | Opts.SHUFFLE
     )
 
+    obs = ObservabilityData(ds, freq_hz=2.0, sliding_window_len_s=2.0)
+    subj = 11
+
+    cfg = svm.SVM.Config("rbf", 5.0, 1.0)
+    clf = svm.SVM(cfg)
+    clf_trial(
+        obs,
+        clf,
+        subj,
+        "rbf, continuous rotation",
+        *obs.preprocess(Opts.CONTINUOUS_ROT | Opts.SHUFFLE),
+    )
+
+    return
     # try some values for C and sigma for grid search
     Cs = [0.1, 1, 10, 100]
     sigmas = [0.1, 0.5, 1, 2, 5]
