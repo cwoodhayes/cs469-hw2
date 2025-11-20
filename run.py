@@ -227,7 +227,8 @@ def partB(ds: Dataset, overwrite_files: bool = False):
     plt.ylabel(r"$\sigma$")
     desc = (
         f"C={Cs[best_acc_i[0]]}, "
-        f"sigma={sigmas[best_acc_i[1]]}, accuracy={accuracy[best_acc_i]:.1f}%"
+        f"sigma={sigmas[best_acc_i[1]]}, \naccuracy={accuracy[best_acc_i]:.1f}%, "
+        f"recall={recall[best_acc_i]:.1f}%"
     )
     plt.title(f"Grid search results for ds0 (accuracy)\nBest: {desc}")
 
@@ -239,12 +240,12 @@ def partB(ds: Dataset, overwrite_files: bool = False):
     plt.xlabel("C")
     plt.xscale("log")
     plt.ylabel(r"$\sigma$")
-    desc = (
+    desc2 = (
         f"C={Cs[best_rec_i[0]]}, "
-        f"sigma={sigmas[best_rec_i[1]]}, recall={recall[best_rec_i]:.1f}%"
+        f"sigma={sigmas[best_rec_i[1]]}, \naccuracy={accuracy[best_rec_i]:.1f}%, "
+        f"recall={recall[best_rec_i]:.1f}%"
     )
-    plt.title(f"Grid search results for ds0 (recall)\nBest: {desc}")
-    return
+    plt.title(f"Grid search results for ds0 (recall)\nBest: {desc2}")
 
     # show detailed performance of landmarks from most successful
     subj = 19  # just picked a random one to visualize
