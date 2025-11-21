@@ -253,19 +253,19 @@ def partB(ds: Dataset, overwrite_files: bool = False):
 
     # show detailed performance of landmarks from most successful
     subj = 19  # just picked a random one to visualize
-    best_df = grid_data[best_acc_i]
+    best_df = grid_data[best_rec_i]
     X_test_best = best_df[["x_m", "y_m"]].copy()
     X_test_best["orientation_rad"] = np.atan2(best_df["cos"], best_df["sin"])
     y_test_best = best_df[f"y_{subj}"]
     yhat_test_best = best_df[f"yhat_{subj}"]
     fig = plt.figure("B - best accuracy 3D plot", figsize=(6, 10))
-    fig.suptitle("One landmark for " + desc)
+    fig.suptitle("One landmark for " + desc2)
     plot_performance_comparison(
         obs, subj, fig, X_test_best, y_test_best, yhat_test_best
     )
 
     fig2 = plt.figure("B - best accuracy ALL 3D plot", figsize=(6, 10))
-    fig2.suptitle("All landmarks for " + desc)
+    fig2.suptitle("All landmarks for " + desc2)
     y_test_all = best_df[[f"y_{lm}" for lm in obs.landmarks]]
     y_test_all = y_test_all.rename(columns={f"y_{lm}": lm for lm in obs.landmarks})
     yhat_test_all = best_df[[f"yhat_{lm}" for lm in obs.landmarks]]
