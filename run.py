@@ -24,10 +24,7 @@ from hw2.plot import (
     plot_landmark_bars,
     plot_performance_comparison,
     plot_single_observation,
-    plot_visibility_trajectory,
     plot_visibility_3d,
-    plot_visibility_3d_numpy,
-    sync_axes,
 )
 from hw2.trials import clf_trial, clf_trial_sample_points
 
@@ -54,7 +51,7 @@ def main():
     partA3(ds)
     partB(ds)
 
-    lib_experiments(ds)
+    # lib_experiments(ds)
 
     if ns.save:
         print("Saving figures...")
@@ -274,6 +271,7 @@ def partB(ds: Dataset, overwrite_files: bool = False):
     )
     plot_performance_comparison(obs, None, fig2, X_test, y_test_all, yhat_test_all)
 
+    return
     # Also, let's demonstrate the impact of not splitting orientation into sin & cos
     # on the highest accuracy params
     cfg = svm.SVM.Config("rbf", Cs[best_acc_i[0]], sigmas[best_acc_i[1]])

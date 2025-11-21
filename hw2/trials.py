@@ -7,7 +7,6 @@ from typing import Any
 from matplotlib.figure import Figure
 import numpy as np
 import pandas as pd
-from sklearn.metrics import ConfusionMatrixDisplay
 from hw2 import svm
 import matplotlib.pyplot as plt
 
@@ -32,6 +31,8 @@ def clf_trial(
     figid: str | None = None,
 ) -> None:
     """Run a trial on a classifier setup."""
+    from sklearn.metrics import ConfusionMatrixDisplay
+
     time_s = timeit.timeit(
         lambda: clf.fit(X_train.to_numpy(), y_train[subj].to_numpy()), number=1
     )
