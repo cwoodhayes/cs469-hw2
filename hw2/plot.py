@@ -447,6 +447,12 @@ def plot_performance_comparison(
     y_test: pd.DataFrame,
     yhat_test: np.ndarray | dict[int, np.ndarray],
 ) -> None:
+    if "orientation_rad" not in X_test.columns:
+        # handle preprocessed for continuous rotation
+        X_test["orientation_rad"] = np.atan2(X_test["sin"], X_test["cos"])
+        del X_test["sin"]
+        del X_test["cos"]
+
     ax = fig.add_subplot(211, projection="3d")
     if subj is None:
         # plot all subjects
