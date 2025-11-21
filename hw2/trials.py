@@ -41,7 +41,7 @@ def clf_trial(
     yhat_test = clf.predict(X_test.to_numpy())
 
     # visualize the output
-    fig = plt.figure(f"trial_{label}" if figid is None else figid)
+    fig = plt.figure(f"trial_{label}" if figid is None else figid, figsize=(6, 10))
     plot_performance_comparison(obs, subj, fig, X_test, y_test, yhat_test)
 
     # print % correct

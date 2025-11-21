@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 
+from hw2 import svm
 from hw2.data import Dataset, ObservabilityData
 
 RGBATuple = tuple[float, float, float, float]
@@ -454,7 +455,7 @@ def plot_performance_comparison(
         plot_visibility_3d_numpy(
             obs.source_ds, X_test.to_numpy(), yhat_test, ax, subject=subj
         )
-    ax.set_title(r"Training set predicted labels ($\hat{y}$)")
+    ax.set_title(r"Test set predicted labels ($\hat{y}$)")
 
     # compare against ground truth labels
     ax2 = fig.add_subplot(212, projection="3d")
@@ -466,7 +467,24 @@ def plot_performance_comparison(
         plot_visibility_3d_numpy(
             obs.source_ds, X_test.to_numpy(), y_test, ax2, subject=subj
         )
-    ax2.set_title("Training set ground truth labels (y)")
+    ax2.set_title("Test set ground truth labels (y)")
 
     sync_axes(ax, ax2)
     sync_axes(ax2, ax)
+
+
+def plot_evenfield(
+    ds: Dataset, clf: svm.SVM, X_test: pd.DataFrame, y_test: pd.DataFrame
+):
+    # and finally, for my own curiosity, let's see how the classifier actually
+    # separates R3 by distributing a field of points
+    # arena goes from y=[-6, 6], x=[-2, 5], theta=[-pi, pi]
+    subj = 7
+    clf.fit(X_test.to_numpy(), y_test[subj].to_numpy())
+    X_evenspace = np.vstack(
+        [np.linspace(-6, 6, 30), np.linspace(-2, 5, 30), np.linspace(-np.pi, np.pi, 30)]
+    )
+    yhat_evenspace = clf.predict(X_evenspace)
+    fig_evenspace = plt.figure("B_evenspace")
+    ax = fig_evenspace.add_subplot(projection="3d")
+    plot_visibility_3d_numpy(ds, X_evenspace, yhat_evenspace, ax, subj)
