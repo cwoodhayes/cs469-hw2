@@ -12,4 +12,7 @@ Author: Conor Hayes
 ## Run Instructions
 `uv run run.py` or `python3 run.py`
 
-This will generate all plots & figures from the writeup
+This will generate all plots & figures from the writeup and display them in separate windows.
+
+If you run with `run.py -s` instead, these plots will be immediately saved to disk in the `figures/` directory
+instead.
