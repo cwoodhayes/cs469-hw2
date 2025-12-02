@@ -1,7 +1,7 @@
 """
 Entry point.
 
-Simulates A* plus a low level controller for path planning & execution.
+SVM-based predictor for landmark visibility on a mobile robot.
 
 author: conor hayes
 """
