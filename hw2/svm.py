@@ -122,6 +122,10 @@ class SVM:
         # we need to use epsilon instead of 0 cuz the numerical solver
         # never quite reaches 0.
         svec_indices = np.where((self.c.alpha_epsilon < alpha) & (alpha <= self.c.C))[0]
+        if len(svec_indices) == 0:
+            raise SVMError(
+                f"No support vectors found--{len(alpha)} alpha's failed to satisfy."
+            )
 
         # finally, calculate b
         K_sv = self.compute_rbf_kernel_matrix(X[svec_indices])

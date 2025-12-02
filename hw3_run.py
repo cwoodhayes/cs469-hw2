@@ -33,7 +33,7 @@ def main():
     # jeuen's dataset
     jds = pd.read_csv(REPO_ROOT / "jeuen_learning_dataset.txt", sep=" ")
 
-    train_test_controller(jds)
+    train_test_controller(jds, ns.overwrite)
 
     if ns.save:
         print("Saving figures...")
@@ -52,6 +52,7 @@ def get_cli_args() -> argparse.Namespace:
         "--save",
         action="store_true",
     )
+    cli.add_argument("--overwrite", action="store_true")
     return cli.parse_args()
 
 
@@ -63,7 +64,7 @@ def train_test_controller(jds: pd.DataFrame, overwrite: bool = False) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     csv_path = out_dir / "outputs.csv"
 
-    cfg = svm.SVM.Config("rbf", 10, 0.1)
+    cfg = svm.SVM.Config("rbf", 0.01, 0.001)
     # train a classifier for each dimension of the output space
     cls_cols = ["dx_class", "dy_class", "dtheta_class"]
 
