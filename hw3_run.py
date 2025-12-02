@@ -55,31 +55,44 @@ def get_cli_args() -> argparse.Namespace:
     return cli.parse_args()
 
 
-def train_test_controller(jds: pd.DataFrame) -> None:
+def train_test_controller(jds: pd.DataFrame, overwrite: bool = False) -> None:
     """Train & test SVM-based coarse grained controller."""
 
     X_train, X_test, y_train, y_test = test_train_split(preprocess(jds))
     out_dir = pathlib.Path(__file__).parent / "data/hw3"
+    out_dir.mkdir(parents=True, exist_ok=True)
     csv_path = out_dir / "outputs.csv"
 
     cfg = svm.SVM.Config("rbf", 10, 0.1)
     # train a classifier for each dimension of the output space
     cls_cols = ["dx_class", "dy_class", "dtheta_class"]
-    clfs = {}
-    test_df = X_test.copy()
-    test_df.join(y_test)
 
-    for dim in cls_cols:
-        print(f"Training classifier for {dim} - cfg={cfg}...")
-        clf = svm.SVM(cfg)
-        clf.fit(X_train.to_numpy(), y_train[dim].to_numpy())
-        clfs[dim] = clf
+    test_df = None
+    if overwrite or not csv_path.exists():
+        clfs = {}
+        test_df = X_test.copy()
+        test_df = test_df.join(y_test)
 
-        # run on the test set
-        yhat = clf.predict(X_test.to_numpy())
-        test_df[f"{dim}_hat"] = yhat
+        for dim in cls_cols:
+            print(f"Training classifier for {dim} - cfg={cfg}...")
+            clf = svm.SVM(cfg)
+            clf.fit(X_train.to_numpy(), y_train[dim].to_numpy())
+            clfs[dim] = clf
 
-    test_df.to_csv(csv_path)
+            # run on the test set
+            yhat = clf.predict(X_test.to_numpy())
+            test_df[f"{dim}_hat"] = yhat
+
+        test_df.to_csv(csv_path, index=False)
+    else:
+        test_df = pd.read_csv(csv_path)
+
+    # check accuracy
+    y = test_df[cls_cols]
+    yhat = test_df[[f"{dim}_hat" for dim in cls_cols]]
+    n_correct = np.count_nonzero(yhat.to_numpy() == y.to_numpy())
+    accuracy = n_correct / sum(y.shape) * 100
+    print(f"Accuracy: {accuracy}%")
 
 
 def preprocess(data: pd.DataFrame) -> pd.DataFrame:
