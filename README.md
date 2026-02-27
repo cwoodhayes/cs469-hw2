@@ -20,7 +20,8 @@ The implementation includes:
 - A **grid search** over hyperparameters C and σ to select the best model
 
 ![Classifier output vs. ground truth on the test set](figures/B%20-%20best%20accuracy%203D%20plot.png)
-*Fig — Predicted landmark visibility (top) vs. ground truth (bottom) on the test set across all 15 landmarks. The classifier's predictions closely match ground truth (97% accuracy, 88% recall).*
+
+*Fig B2 (see writeup) — Predicted landmark visibility (top) vs. ground truth (bottom) on the test set across all 15 landmarks. The classifier's predictions closely match ground truth (97% accuracy, 88% recall).*
 
 ---
 
