@@ -19,7 +19,7 @@ The implementation includes:
 - A **multi-label classifier** that trains one SVM per landmark (N=15 landmarks) and aggregates results
 - A **grid search** over hyperparameters C and σ to select the best model
 
-![Classifier output vs. ground truth on the test set](figures/B%20-%20best%20accuracy%20ALL%203D%20plot.png)  
+![Classifier output vs. ground truth on the test set](figures/B%20-%20best%20accuracy%203D%20plot.png)
 *Fig — Predicted landmark visibility (top) vs. ground truth (bottom) on the test set across all 15 landmarks. The classifier's predictions closely match ground truth (97% accuracy, 88% recall).*
 
 ---
